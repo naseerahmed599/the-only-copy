@@ -204,6 +204,10 @@ body[data-mood="deep"]  .tint--deep { opacity: 1; }
 .slot.is-loaded img { opacity: 1; }
 .slot.is-missing img { display: none; }
 .slot picture { display: contents; }
+.slot.is-photo img { filter: saturate(.78) contrast(1.04) brightness(.9); }
+@media (min-width: 900px) { .slot.is-photo img { object-position: var(--fx, 50%) 40%; } }
+.slot .tint { position: absolute; inset: 0; pointer-events: none; background: var(--sky); mix-blend-mode: multiply; opacity: .34; transition: background var(--t-mood) ease-in-out; }
+.slot.is-photo .scrim { background: linear-gradient(180deg, rgba(7,11,31,.3) 0%, rgba(7,11,31,.05) 30%, rgba(7,11,31,.5) 100%); }
 .slot img.xfade { opacity: 0; transition: none; z-index: 1; }
 .slot img.xfade.is-broken { display: none; }
 .slot .art {
@@ -691,6 +695,47 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 .cstar--rose.is-shown { opacity: 1; }
 .constellation .counter { position: absolute; left: 50%; bottom: 1.4rem; transform: translateX(-50%); font-family: var(--sans); font-size: .66rem; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-faint); }
 
+/* ── A note from the reader (hidden behind a small star) ──── */
+.secret { margin: 1.6rem auto 0; max-width: var(--measure); text-align: left; }
+.secret-star {
+  width: 44px; height: 44px; margin-left: -12px;
+  background: none; border: 0; cursor: pointer;
+  display: inline-grid; place-items: center; color: var(--gold);
+}
+.secret-star i {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--gold); box-shadow: 0 0 10px var(--gold-glow), 0 0 22px var(--gold-glow);
+  transition: transform .8s var(--ease-out);
+  animation: glow 3.2s ease-in-out infinite;
+}
+.secret-star:focus-visible { outline: 1px solid var(--gold-soft); outline-offset: -8px; border-radius: 50%; }
+.secret-text {
+  margin: 0; padding-left: .4rem;
+  font-style: italic; font-size: 1.02rem; line-height: 1.55; color: var(--gold);
+  max-height: 0; opacity: 0; overflow: hidden; transform: translateY(6px);
+  transition: max-height 1s var(--ease-out), opacity .9s ease, transform .9s var(--ease-out);
+}
+.secret.is-open .secret-text { max-height: 14rem; opacity: .95; transform: none; }
+.secret.is-open .secret-star i { transform: scale(1.8); animation: none; }
+@media (min-width: 900px) { .scene--chapter .text .secret { margin-left: 0; } }
+
+/* ── Credits line under the stamp ──────────────────────────── */
+.credits { margin: 1.6rem auto 0; font-family: var(--sans); font-size: .6rem; letter-spacing: .22em; text-transform: uppercase; }
+.credits a { color: var(--ink-faint); text-decoration: none; border-bottom: 1px solid rgba(243,238,226,.18); padding-bottom: 1px; }
+.credits a:hover { color: var(--gold-soft); }
+@media (min-width: 900px) { .scene--end .credits { margin-left: 0; } }
+
+/* ── The pocket ────────────────────────────────────────────── */
+#pocket {
+  position: fixed; left: calc(12px + env(safe-area-inset-left)); bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 6; pointer-events: none;
+  display: flex; flex-direction: column-reverse; gap: 10px;
+}
+#pocket:empty { display: none; }
+.pocket-item { display: block; width: 26px; height: 26px; color: var(--gold); opacity: .8; filter: drop-shadow(0 0 6px rgba(232,200,114,.35)); }
+.pocket-item svg { width: 100%; height: 100%; }
+body.is-gated #pocket { display: none; }
+
 /* ── End ──────────────────────────────────────────────────── */
 .scene--end .sign { font-style: italic; color: var(--gold); margin: 2.6rem auto 0; max-width: var(--measure); }
 .scene--end .stamp {
@@ -710,6 +755,8 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
   .scene--chapter .text, .scene--interlude .text, .scene--end .text { margin-top: 0; padding-top: 2rem; }
   .scene--cover .hint, .ix-well .handle span, .cstar--rose i, .ix-roses .rose.is-chosen::after { animation: none; }
   .scene--cover .hero-star b, .scene--cover .hero-star::before, .scene--cover .hero-star::after { animation: none; }
+  .secret-star i { animation: none; }
+  .secret-text { transition-duration: .3s; }
   .art-stars, .art-wheat, .art-scarf, .art-pulse, .art-glow, #gate .gate-field.is-wrong { animation: none; }
   .ix-sheepbox.is-asleep .box { animation: none; }
   .hero .slot, .scene .text .title, .scene .text .caption { transition-duration: .3s; }

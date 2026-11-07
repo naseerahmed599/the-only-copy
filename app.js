@@ -41,7 +41,16 @@
     bells: { count: 60 },
     constellation: { needed: 5, minDist: 11 },
     // Real images that also have a landscape version (img/<name>-wide.jpg), used on laptops
-    wideImages: ["00-cover", "38-the-thirty-first-star", "38-the-thirty-first-star-dawn"],
+    wideImages: ["00-cover", "38-the-thirty-first-star", "38-the-thirty-first-star-dawn",
+      "02-desert-crash", "07-forty-four-sunsets", "29-walking-at-night", "18-the-earth-at-night", "19-the-snake",
+      "23-the-fox-appears", "24-the-wheat-fields", "26-the-secret", "27-the-railway-switchman"],
+    // Photographs from Wikimedia Commons (see CREDITS.txt): they get one shared treatment so they read as one night
+    photos: ["02-desert-crash", "06-baobabs", "07-forty-four-sunsets", "29-walking-at-night", "18-the-earth-at-night", "19-the-snake",
+      "23-the-fox-appears", "24-the-wheat-fields", "26-the-secret", "27-the-railway-switchman"],
+    // where the subject sits in each landscape photograph (fraction of width), for the laptop crop
+    photoFocus: { "07-forty-four-sunsets": 0.36, "23-the-fox-appears": 0.62, "26-the-secret": 0.36, "27-the-railway-switchman": 0.32 },
+    // Things she keeps as she passes them (scene id → object); they rise into the sky at the shelf
+    pocket: { c02b: "box", c08: "rose", c21d: "note", c25: "cup", c26b: "bell" },
     // A second image that fades in over the first as a scene's text scrolls by (scene id → file)
     crossfade: { end: "38-the-thirty-first-star-dawn.jpg" },
     shootingStars: { minGap: 18000, maxGap: 45000, duration: 900 }   // in night/deep moods only
@@ -324,6 +333,12 @@
     } else {
       slot.classList.add("is-missing");
     }
+    if (scene.img && CONFIG.photos.indexOf(scene.img.replace(/\.jpg$/, "")) >= 0) {
+      slot.classList.add("is-photo");
+      const fx = CONFIG.photoFocus[scene.img.replace(/\.jpg$/, "")];
+      if (fx != null) slot.style.setProperty("--fx", Math.round(fx * 100) + "%");
+      slot.appendChild(h("div.tint"));
+    }
     slot.appendChild(h("div.veil"));
     slot.appendChild(h("div.scrim"));
     return slot;
@@ -341,6 +356,59 @@
     pic.appendChild(src); pic.appendChild(img);
     return img;
   }
+
+  /** A small star after the chapter; tapping it opens one line from the reader */
+  function secretNote(textContent) {
+    const box = h("div.secret.rv");
+    const btn = h("button.secret-star", { type: "button", "aria-expanded": "false", "aria-label": "A note from the reader" }, h("i"));
+    const txt = h("p.secret-text", { text: textContent, id: "secret-" + Math.random().toString(36).slice(2, 7) });
+    btn.setAttribute("aria-controls", txt.id);
+    btn.addEventListener("click", () => {
+      const open = box.classList.toggle("is-open");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) Audio.ding(rand(1300, 1700));
+    });
+    box.appendChild(btn); box.appendChild(txt);
+    return box;
+  }
+
+  /* ════════════════════════════════════════════════════════════
+     The pocket: small drawn things she keeps as she passes them.
+     No counter, no words. At the shelf they rise into the sky.
+     ════════════════════════════════════════════════════════════ */
+  const Pocket = (() => {
+    const ICON = {
+      box:  '<rect x="4" y="8" width="16" height="11" rx="1"/><path d="M4 8l3-3h13l-3 3"/><circle cx="9" cy="13.5" r="1.1"/><circle cx="13" cy="13.5" r="1.1"/><circle cx="17" cy="13.5" r="1.1"/>',
+      rose: '<path d="M5 20a7 7 0 0 1 14 0"/><path d="M4 20h16"/><path d="M12 15v-4"/><circle cx="12" cy="9" r="2.4"/><path d="M12 11c-1.5 0-2.4-1-2.4-2"/>',
+      note: '<path d="M6 4h9l4 4v12H6z"/><path d="M15 4v4h4"/><path d="M9 13h6M9 16h4"/>',
+      cup:  '<path d="M6 7h11l-1.2 11H7.2z"/><path d="M17 9h2a2 2 0 0 1 0 4h-2.4"/><path d="M8 10.5c2 .8 5 .8 7 0"/>',
+      bell: '<path d="M7 16V11a5 5 0 0 1 10 0v5l1.5 2h-13z"/><path d="M10 20a2 2 0 0 0 4 0"/><path d="M12 4v2"/>'
+    };
+    let el = null; const have = new Set();
+    function ensure() {
+      if (el) return el;
+      el = h("div", { id: "pocket", "aria-hidden": "true" });
+      document.body.appendChild(el);
+      return el;
+    }
+    function keep(kind) {
+      if (have.has(kind) || !ICON[kind]) return;
+      have.add(kind);
+      const item = h("span.pocket-item", { dataset: { kind }, html: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">${ICON[kind]}</svg>` });
+      ensure().appendChild(item);
+      if (HAS_GSAP && !RM) gsap.from(item, { y: -26, opacity: 0, scale: 0.6, duration: 1.1, ease: "back.out(1.7)" });
+    }
+    function release(onDone) {
+      if (!el || !el.children.length) { if (onDone) onDone(); return; }
+      const items = Array.from(el.children);
+      if (!HAS_GSAP || RM) { items.forEach(i => i.remove()); if (onDone) onDone(); return; }
+      gsap.to(items, {
+        y: -window.innerHeight * 0.55, x: (i) => 40 + i * 18, opacity: 0, scale: 0.4, duration: 2.6, ease: "power2.in", stagger: 0.14,
+        onComplete: () => { items.forEach(i => i.remove()); if (onDone) onDone(); }
+      });
+    }
+    return { keep, release };
+  })();
 
   /* ════════════════════════════════════════════════════════════
      Scene renderers
@@ -405,6 +473,7 @@
     if (caption) text.appendChild(h("p.caption.rv", { text: caption }));
     text.appendChild(h("h2.title.rv", { text: s.title }));
     (s.beats || []).forEach(b => text.appendChild(h("p.beat.rv", { text: b })));
+    if (s.secret) text.appendChild(secretNote(s.secret));
     if (s.note) text.appendChild(h("aside.note.rv", { text: s.note }));
     if (s.interaction && Interactions[s.interaction]) {
       const box = h("div.interaction.rv", { dataset: { kind: s.interaction } });
@@ -416,6 +485,7 @@
     if (kind === "end") {
       if (s.sign) text.appendChild(h("p.sign.rv", { text: s.sign }));
       text.appendChild(h("div.stamp.rv", { text: "print run · 1 of 1", "aria-label": "Print run: 1 of 1" }));
+      text.appendChild(h("p.credits.rv", null, h("a", { href: "CREDITS.txt", text: "photographs · credits" })));
     }
     sec.appendChild(text);
     return sec;
@@ -939,15 +1009,22 @@
         gsap.timeline().to(vig0, { opacity: RM ? 0.5 : 0.92, duration: 2.4, ease: "sine.inOut" }).to(vig0, { opacity: 0, duration: 5, ease: "sine.inOut" });
       } });
     }
-    // The shelf: the constellation draws itself as it comes into view
+    // The pocket: each kept thing appears as its last line scrolls into view
+    Object.keys(CONFIG.pocket).forEach(id => {
+      const beats = $$("#" + id + " .text .beat"); const last = beats[beats.length - 1];
+      if (!last) return;
+      ScrollTrigger.create({ trigger: last, start: "top 62%", once: true, onEnter: () => Pocket.keep(CONFIG.pocket[id]) });
+    });
+    // The shelf: the constellation draws itself as it comes into view; what she kept rises into it
     const cons = $(".scene--shelf .constellation");
     if (cons) {
-      const lines = $$("svg.lines line", cons), cstars = $$(".cstar:not(.cstar--rose)", cons);
+      const lines = $$("svg.lines line", cons), cstars = $$(".cstar:not(.cstar--rose)", cons), rose = $(".cstar--rose", cons);
       lines.forEach(l => { l.setAttribute("pathLength", "1"); l.style.strokeDasharray = "1"; l.style.strokeDashoffset = "1"; });
       gsap.set(cstars, { opacity: 0, scale: 0.3 });
       ScrollTrigger.create({ trigger: cons, start: "top 70%", once: true, onEnter: () => {
         gsap.to(cstars, { opacity: 1, scale: 1, duration: RM ? 0.3 : 1.2, ease: "power2.out", stagger: RM ? 0 : 0.09 });
         gsap.to(lines, { strokeDashoffset: 0, duration: RM ? 0.3 : 0.9, ease: "power1.inOut", stagger: RM ? 0 : 0.12, delay: RM ? 0 : 0.4 });
+        gsap.delayedCall(RM ? 0.3 : 2.2, () => Pocket.release(() => { if (rose) rose.classList.add("is-shown"); }));
       } });
     }
     // The colophon: night turns to dawn over the rooftops as the last lines scroll by
