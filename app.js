@@ -1090,6 +1090,8 @@
       gsap.fromTo(heroStar, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 2.4, ease: "power2.out", delay: slow ? 0.5 : 1.4, onComplete: () => heroStar.classList.add("is-awake") });
       // the cover drifts up slower than the page and the star fades as the cover leaves
       if (!RM) gsap.to(coverLayers, { y: "18vh", ease: "none", scrollTrigger: { trigger: ".scene--cover", start: "top top", end: "bottom top", scrub: true } });
+      // the cover lets go gently: it dims into the night as the first scene arrives
+      gsap.to(".scene--cover .hero", { opacity: 0, ease: "none", scrollTrigger: { trigger: ".scene--cover", start: "25% top", end: "bottom top", scrub: true } });
       gsap.to(heroStar, { opacity: 0, ease: "none", scrollTrigger: { trigger: ".scene--cover", start: "top top", end: "60% top", scrub: true } });
     }
     // Part numerals drift a little slower than the page, so the divider feels like a held breath

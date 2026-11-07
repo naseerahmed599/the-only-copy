@@ -298,6 +298,10 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 /* ── Cover ────────────────────────────────────────────────── */
 .scene--cover { min-height: var(--vh); display: grid; }
 .scene--cover .hero { position: absolute; inset: 0; z-index: 0; }
+.scene--cover .hero .slot {
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 58%, rgba(0,0,0,.55) 82%, transparent 100%);
+          mask-image: linear-gradient(180deg, #000 0, #000 58%, rgba(0,0,0,.55) 82%, transparent 100%);
+}
 .scene--cover .slot .scrim {
   background: linear-gradient(180deg, rgba(7,11,31,.25), rgba(7,11,31,.55) 55%, var(--sky) 100%);
 }
