@@ -56,7 +56,13 @@
 
   const RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const HAS_GSAP = typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined";
-  if (HAS_GSAP) gsap.registerPlugin(ScrollTrigger);
+  if (HAS_GSAP) {
+    gsap.registerPlugin(ScrollTrigger);
+    // iOS shows/hides the address bar while scrolling; don't recompute every trigger when it does
+    ScrollTrigger.config({ ignoreMobileResize: true });
+  }
+  // Phones and tablets get a lighter version of the scroll effects
+  const LITE = window.matchMedia("(max-width: 899px), (pointer: coarse)").matches;
 
   /* ════════════════════════════════════════════════════════════
      Small helpers
@@ -226,7 +232,9 @@
     }
 
     function resize() {
-      dpr = Math.min(window.devicePixelRatio || 1, CONFIG.stars.maxDpr);
+      // ignore the small height changes from the mobile address bar; reallocating the canvas mid-scroll stutters
+      if (W && window.innerWidth === W && Math.abs(window.innerHeight - H) < 160) return;
+      dpr = Math.min(window.devicePixelRatio || 1, LITE ? 1.5 : CONFIG.stars.maxDpr);
       W = window.innerWidth; H = window.innerHeight;
       canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1058,14 +1066,14 @@
       const isStamp = el.classList.contains("stamp");
       const wide = window.matchMedia("(min-width: 900px)").matches;
       const from = { opacity: 0, y: RM ? 0 : CONFIG.reveal.y };
-      if (!RM && isHead) from.filter = "blur(" + CONFIG.reveal.blur + "px)";   // headings settle into focus, like a slow lens
+      if (!RM && isHead && !LITE) from.filter = "blur(" + CONFIG.reveal.blur + "px)";   // headings settle into focus, like a slow lens
       if (!RM && isTitle && !inCover && wide) from.letterSpacing = CONFIG.reveal.titleTracking;
       if (!RM && isStamp) { from.scale = 1.08; from.rotation = -3; from.y = 0; }
       gsap.set(el, from);
       if (inCover) return; // handled as a timeline below
       const to = { opacity: 1, y: 0, duration: slow ? CONFIG.dedication.duration : CONFIG.reveal.duration, ease: CONFIG.reveal.ease,
         onComplete: () => { el.classList.add("is-in"); gsap.set(el, { clearProps: "filter,letterSpacing" }); } };
-      if (!RM && isHead) to.filter = "blur(0px)";
+      if (!RM && isHead && !LITE) to.filter = "blur(0px)";
       if (!RM && isTitle && !inCover && wide) { to.letterSpacing = "0em"; to.duration = CONFIG.reveal.duration * 1.6; }
       if (!RM && isStamp) { to.scale = 1; to.rotation = -1.5; to.duration = 1.2; to.ease = "power2.out"; }
       ScrollTrigger.create({
@@ -1153,8 +1161,9 @@
       gsap.fromTo(r, { scaleX: 0 }, { scaleX: 1, duration: 1.4, ease: "power3.inOut", scrollTrigger: { trigger: r, start: "top 80%", once: true } });
     });
 
-    // Ken Burns on each sticky hero image across its scene
-    if (!RM) {
+    // Ken Burns on each sticky hero image across its scene (desktop only: on phones the
+    // per-frame rescale of a masked, full-screen layer, and of SVG suns, is what made scrolling stutter)
+    if (!RM && !LITE) {
       $$(".scene--chapter, .scene--interlude, .scene--end").forEach(sec => {
         const layers = $$(".hero .slot img, .hero .slot .art", sec);
         if (!layers.length) return;
@@ -1233,10 +1242,15 @@
       for (const p of partNames) { if (p.el.offsetTop <= mid) name = p.name; }
       return name;
     }
+    let max = 1, len = 0, queued = false;
+    function measure() {
+      max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      len = track.offsetHeight;
+    }
     function update() {
-      const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      queued = false;
+      if (!len) measure();
       const t = clamp(window.scrollY / max, 0, 1);
-      const len = track.offsetHeight;
       const y = t * len;
       planet.style.transform = `translateY(${y}px)`;
       label.style.top = `calc(12vh + ${y}px)`;
@@ -1249,8 +1263,12 @@
     planet.addEventListener("click", show);
     planet.addEventListener("pointerenter", () => { nav.classList.add("show-label"); clearTimeout(hideT); });
     planet.addEventListener("pointerleave", () => { hideT = setTimeout(() => nav.classList.remove("show-label"), 500); });
-    window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update, { passive: true });
+    // one update per frame, and no layout reads on scroll (measured on resize/refresh only)
+    const queue = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+    window.addEventListener("scroll", queue, { passive: true });
+    window.addEventListener("resize", () => { measure(); queue(); }, { passive: true });
+    if (HAS_GSAP) ScrollTrigger.addEventListener("refresh", () => { measure(); queue(); });
+    measure();
     update();
   }
 
@@ -1382,9 +1400,20 @@
   /* ════════════════════════════════════════════════════════════
      Boot
      ════════════════════════════════════════════════════════════ */
+  /* Far scenes stop painting: only heroes within about a screen of the
+     viewport keep their image/art layers, so phones don't run out of
+     graphics memory holding every illustration at once. */
+  function cullFarScenes() {
+    if (!("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle("is-far", !e.isIntersecting)),
+      { rootMargin: "100% 0px 100% 0px" });
+    $$(".scene--chapter, .scene--interlude, .scene--end, .scene--cover").forEach(s => io.observe(s));
+  }
+
   function start() {
     render();
     choreograph();
+    cullFarScenes();
     initProgress();
     Audio.initBgm();
   }

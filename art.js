@@ -13,6 +13,9 @@
 window.ART = (function () {
   "use strict";
   const W = 1000, H = 1400;
+  /* Phones/tablets: skip the full-canvas feTurbulence grain. It is re-rasterized
+     at device pixel ratio for every scene and was enough to crash mobile Safari/Chrome. */
+  const LITE = window.matchMedia("(max-width: 899px), (pointer: coarse)").matches;
 
   /* ── palette: sand / bone / indigo, one gold, rose only for roses ── */
   const C = {
@@ -53,7 +56,7 @@ window.ART = (function () {
 ${extra || ""}</defs>`;
   }
   const sky = id => `<rect width="${W}" height="${H}" fill="url(#${id}-sky)"/>`;
-  const grain = id => `<rect width="${W}" height="${H}" filter="url(#${id}-grain)" opacity=".11" style="mix-blend-mode:soft-light"/>`;
+  const grain = id => LITE ? "" : `<rect width="${W}" height="${H}" filter="url(#${id}-grain)" opacity=".11" style="mix-blend-mode:soft-light"/>`;
   const horizonGlow = (id, cx, cy, rx, ry, op) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#${id}-glow)" opacity="${op == null ? 0.8 : op}"/>`;
 
   /* stars: tiny circles across the upper sky (grouped by tone to stay light); one optional bright pulsing star */
