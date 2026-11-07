@@ -203,6 +203,9 @@ body[data-mood="deep"]  .tint--deep { opacity: 1; }
 }
 .slot.is-loaded img { opacity: 1; }
 .slot.is-missing img { display: none; }
+.slot picture { display: contents; }
+.slot img.xfade { opacity: 0; transition: none; z-index: 1; }
+.slot img.xfade.is-broken { display: none; }
 .slot .art {
   position: absolute; inset: 0;
   opacity: 1; transition: opacity 1.2s ease;
@@ -287,6 +290,30 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 .scene--cover .slot .scrim {
   background: linear-gradient(180deg, rgba(7,11,31,.25), rgba(7,11,31,.55) 55%, var(--sky) 100%);
 }
+.scene--cover .hero-star {
+  position: absolute; z-index: 1; width: 0; height: 0; pointer-events: none; opacity: 0;
+}
+.scene--cover .hero-star i, .scene--cover .hero-star b {
+  position: absolute; left: 50%; top: 50%; border-radius: 50%; transform: translate(-50%, -50%);
+}
+.scene--cover .hero-star i {
+  width: 5px; height: 5px; background: #fff;
+  box-shadow: 0 0 6px 2px rgba(255,255,255,.9), 0 0 22px 6px rgba(243,238,226,.35), 0 0 60px 18px rgba(232,200,114,.14);
+}
+.scene--cover .hero-star b {
+  width: 46px; height: 46px;
+  background: radial-gradient(circle, rgba(255,255,255,.55), rgba(243,238,226,.12) 35%, transparent 70%);
+  opacity: 0;
+}
+.scene--cover .hero-star::before, .scene--cover .hero-star::after {
+  content: ""; position: absolute; left: 50%; top: 50%; background: rgba(255,255,255,.55);
+  transform: translate(-50%, -50%); opacity: 0;
+}
+.scene--cover .hero-star::before { width: 34px; height: 1px; }
+.scene--cover .hero-star::after { width: 1px; height: 34px; }
+.scene--cover .hero-star.is-awake b, .scene--cover .hero-star.is-awake::before, .scene--cover .hero-star.is-awake::after { animation: heroPulse 8s ease-in-out infinite; }
+@keyframes heroPulse { 0%, 82%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(.6); } 90% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+.scene--cover .slot img { object-position: center 40%; }
 .scene--cover .content {
   position: relative; z-index: 1;
   align-self: end;
@@ -682,6 +709,7 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
   .scene--chapter .hero, .scene--interlude .hero, .scene--end .hero { position: relative; height: 60vh; }
   .scene--chapter .text, .scene--interlude .text, .scene--end .text { margin-top: 0; padding-top: 2rem; }
   .scene--cover .hint, .ix-well .handle span, .cstar--rose i, .ix-roses .rose.is-chosen::after { animation: none; }
+  .scene--cover .hero-star b, .scene--cover .hero-star::before, .scene--cover .hero-star::after { animation: none; }
   .art-stars, .art-wheat, .art-scarf, .art-pulse, .art-glow, #gate .gate-field.is-wrong { animation: none; }
   .ix-sheepbox.is-asleep .box { animation: none; }
   .hero .slot, .scene .text .title, .scene .text .caption { transition-duration: .3s; }

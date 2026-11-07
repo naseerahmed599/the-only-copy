@@ -19,7 +19,7 @@
     heroStar: { period: 8000, x: 0.66, y: 0.24 },      // the one bright star on the cover: pulses every ~8 s
     endDrift: { speed: 14 },                           // px/s the stars drift upward after the colophon
     sunScrub: { travel: 120 },                         // user units an .art-sun descends across its scene
-    reveal:        { y: 24, duration: 1.1, ease: "power2.out", start: "top 78%" },
+    reveal:        { y: 24, duration: 1.1, ease: "power2.out", start: "top 78%", blur: 7, titleTracking: "0.08em" },
     dedication:    { duration: 1.9, stagger: 0.35 },
     kenBurns:      { from: 1.0, to: 1.08 },
     moodTrigger:   { start: "top 55%", end: "bottom 55%" },
@@ -39,7 +39,12 @@
     sunsets: 44,
     baobab: { interval: 1500, growMs: 6000, count: 5 },
     bells: { count: 60 },
-    constellation: { needed: 5, minDist: 11 }
+    constellation: { needed: 5, minDist: 11 },
+    // Real images that also have a landscape version (img/<name>-wide.jpg), used on laptops
+    wideImages: ["00-cover", "38-the-thirty-first-star", "38-the-thirty-first-star-dawn"],
+    // A second image that fades in over the first as a scene's text scrolls by (scene id → file)
+    crossfade: { end: "38-the-thirty-first-star-dawn.jpg" },
+    shootingStars: { minGap: 18000, maxGap: 45000, duration: 900 }   // in night/deep moods only
   };
 
   const RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -196,8 +201,8 @@
     let alphaTarget = CONFIG.stars.alphaByMood.deep, alphaCur = alphaTarget;
     let deepTarget = 1, deepCur = 1;
     let running = true;
-    let heroAlpha = 1;                                 // cover's bright star fades once you scroll past the cover
     let driftOn = false, driftV = 0, driftY = 0, lastT = 0;
+    let meteor = null, nextMeteor = 9000;              // first shooting star about nine seconds in
 
     const rnd = seeded(2718);
     for (let i = 0; i < CONFIG.stars.count; i++) {
@@ -246,25 +251,27 @@
         ctx.arc(x, y, s.r, 0, Math.PI * 2);
         ctx.fill();
       }
-      // the one bright star: sits over the cover, pulses once every ~8 s, fades as the cover scrolls away
-      heroAlpha = clamp(1 - scroll / (H * 0.9), 0, 1);
-      if (heroAlpha > 0.01) {
-        const hx = CONFIG.heroStar.x * W, hy = CONFIG.heroStar.y * H - scroll * CONFIG.stars.layers[1];
-        const ph = (now % CONFIG.heroStar.period) / CONFIG.heroStar.period;
-        const pulse = RM ? 0 : Math.exp(-Math.pow((ph - 0.5) / 0.06, 2));   // a soft bump mid-period
-        const a = heroAlpha * (0.55 + 0.45 * pulse);
-        const rr = 1.6 + 2.2 * pulse;
-        const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, 26 + 30 * pulse);
-        g.addColorStop(0, `rgba(255,255,255,${0.55 * a})`);
-        g.addColorStop(0.25, `rgba(243,238,226,${0.18 * a})`);
-        g.addColorStop(1, "rgba(243,238,226,0)");
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(hx, hy, 26 + 30 * pulse, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = `rgba(255,255,255,${a})`;
-        ctx.beginPath(); ctx.arc(hx, hy, rr, 0, Math.PI * 2); ctx.fill();
-        // four fine rays
-        ctx.strokeStyle = `rgba(255,255,255,${0.5 * a})`; ctx.lineWidth = 0.8;
-        const L = 7 + 14 * pulse;
-        ctx.beginPath(); ctx.moveTo(hx - L, hy); ctx.lineTo(hx + L, hy); ctx.moveTo(hx, hy - L); ctx.lineTo(hx, hy + L); ctx.stroke();
+      // a shooting star now and then, only when the sky is dark enough to notice
+      if (!RM && alphaCur > 0.7) {
+        if (!meteor && now > nextMeteor) {
+          const fromLeft = Math.random() < 0.5;
+          meteor = { t0: now, x: fromLeft ? rand(0.05, 0.4) * W : rand(0.6, 0.95) * W, y: rand(0.06, 0.4) * H, dx: (fromLeft ? 1 : -1) * rand(0.22, 0.38) * W, dy: rand(0.08, 0.18) * H };
+        }
+        if (meteor) {
+          const p = (now - meteor.t0) / CONFIG.shootingStars.duration;
+          if (p >= 1) { meteor = null; nextMeteor = now + rand(CONFIG.shootingStars.minGap, CONFIG.shootingStars.maxGap); }
+          else {
+            const e = 1 - Math.pow(1 - p, 2);                      // fast start, slow finish
+            const hx = meteor.x + meteor.dx * e, hy = meteor.y + meteor.dy * e;
+            const tail = 0.12 * (1 - p);                            // the tail shortens as it fades
+            const tx = hx - meteor.dx * tail, ty = hy - meteor.dy * tail;
+            const a = Math.sin(p * Math.PI) * 0.85;
+            const g = ctx.createLinearGradient(tx, ty, hx, hy);
+            g.addColorStop(0, "rgba(243,238,226,0)"); g.addColorStop(1, `rgba(255,255,255,${a})`);
+            ctx.strokeStyle = g; ctx.lineWidth = 1.2; ctx.lineCap = "round";
+            ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+          }
+        }
       }
       requestAnimationFrame(frame);
     }
@@ -302,21 +309,37 @@
     if (window.ART) art.innerHTML = window.ART.render(scene.id, scene.mood);
     slot.appendChild(art);
     if (scene.img) {
-      const img = h("img", {
-        src: "img/" + scene.img,
-        alt: "",
-        loading: eager ? "eager" : "lazy",
-        decoding: "async"
-      });
+      const img = picture(scene.img, eager);
       img.addEventListener("load", () => slot.classList.add("is-loaded"));
       img.addEventListener("error", () => slot.classList.add("is-missing"));
-      slot.appendChild(img);
+      slot.appendChild(img.parentNode || img);
+      const fade = CONFIG.crossfade[scene.id];
+      if (fade) {
+        const img2 = picture(fade, false);
+        img2.classList.add("xfade");
+        img2.addEventListener("load", () => slot.classList.add("has-xfade"));
+        img2.addEventListener("error", () => img2.classList.add("is-broken"));
+        slot.appendChild(img2.parentNode || img2);
+      }
     } else {
       slot.classList.add("is-missing");
     }
     slot.appendChild(h("div.veil"));
     slot.appendChild(h("div.scrim"));
     return slot;
+  }
+
+  /** An <img>, wrapped in a <picture> with a landscape source when a -wide file exists */
+  function picture(file, eager) {
+    const base = file.replace(/\.jpg$/, "");
+    const img = h("img", { src: "img/" + file, alt: "", loading: eager ? "eager" : "lazy", decoding: "async" });
+    if (CONFIG.wideImages.indexOf(base) < 0) return img;
+    const pic = document.createElement("picture");
+    const src = document.createElement("source");
+    src.setAttribute("media", "(min-width: 900px) and (orientation: landscape)");
+    src.setAttribute("srcset", "img/" + base + "-wide.jpg");
+    pic.appendChild(src); pic.appendChild(img);
+    return img;
   }
 
   /* ════════════════════════════════════════════════════════════
@@ -327,6 +350,7 @@
   function renderCover(s) {
     const sec = h("section.scene.scene--cover", { id: s.id, dataset: { mood: s.mood } });
     sec.appendChild(h("div.hero", null, imageSlot(s, true)));
+    sec.appendChild(h("div.hero-star", { "aria-hidden": "true", style: `left:${CONFIG.heroStar.x * 100}%;top:${CONFIG.heroStar.y * 100}%` }, h("i"), h("b")));
     const content = h("div.content");
     content.appendChild(h("p.eyebrow.rv", { text: "An edition of one" }));
     content.appendChild(h("h1.title.rv", { text: s.title }));
@@ -873,16 +897,65 @@
     $$(".rv").forEach(el => {
       const slow = el.classList.contains("rv--slow");
       const inCover = !!el.closest(".scene--cover");
-      gsap.set(el, { opacity: 0, y: RM ? 0 : CONFIG.reveal.y });
+      const isTitle = el.classList.contains("title");
+      const isStamp = el.classList.contains("stamp");
+      const from = { opacity: 0, y: RM ? 0 : CONFIG.reveal.y };
+      if (!RM) from.filter = "blur(" + CONFIG.reveal.blur + "px)";         // text settles into focus, like a slow lens
+      if (!RM && isTitle && !inCover) from.letterSpacing = CONFIG.reveal.titleTracking;
+      if (!RM && isStamp) { from.scale = 1.7; from.rotation = -9; from.y = 0; from.filter = "none"; }
+      gsap.set(el, from);
       if (inCover) return; // handled as a timeline below
+      const to = { opacity: 1, y: 0, duration: slow ? CONFIG.dedication.duration : CONFIG.reveal.duration, ease: CONFIG.reveal.ease,
+        onComplete: () => { el.classList.add("is-in"); gsap.set(el, { clearProps: "filter,letterSpacing" }); } };
+      if (!RM) to.filter = "blur(0px)";
+      if (!RM && isTitle && !inCover) { to.letterSpacing = "0em"; to.duration = CONFIG.reveal.duration * 1.6; }
+      if (!RM && isStamp) { to.scale = 1; to.rotation = -1.5; to.duration = 0.7; to.ease = "back.out(2.2)"; to.filter = "none"; }
       ScrollTrigger.create({
-        trigger: el, start: slow ? "top 85%" : CONFIG.reveal.start, once: true,
-        onEnter: () => gsap.to(el, { opacity: 1, y: 0, duration: slow ? CONFIG.dedication.duration : CONFIG.reveal.duration, ease: CONFIG.reveal.ease, onComplete: () => el.classList.add("is-in") })
+        trigger: el, start: slow ? "top 85%" : (isStamp ? "top 90%" : CONFIG.reveal.start), once: true,
+        onEnter: () => gsap.to(el, to)
       });
     });
-    // Cover: a gentle staggered entrance on load
+    // Cover: the image breathes out, the text rises in, the one bright star wakes last
     const coverEls = $$(".scene--cover .rv");
-    gsap.to(coverEls, { opacity: 1, y: 0, duration: 1.6, ease: "power2.out", stagger: 0.22, delay: 0.3, onComplete: () => coverEls.forEach(e => e.classList.add("is-in")) });
+    const coverLayers = $$(".scene--cover .slot img, .scene--cover .slot .art");
+    const heroStar = $(".scene--cover .hero-star");
+    if (!RM && coverLayers.length) gsap.fromTo(coverLayers, { scale: 1.1 }, { scale: 1, duration: 7, ease: "power2.out" });
+    gsap.to(coverEls, { opacity: 1, y: 0, filter: "blur(0px)", duration: 1.6, ease: "power2.out", stagger: 0.22, delay: 0.3, onComplete: () => coverEls.forEach(e => { e.classList.add("is-in"); gsap.set(e, { clearProps: "filter" }); }) });
+    if (heroStar) {
+      gsap.fromTo(heroStar, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 2.4, ease: "power2.out", delay: 1.4, onComplete: () => heroStar.classList.add("is-awake") });
+      // the cover drifts up slower than the page and the star fades as the cover leaves
+      if (!RM) gsap.to(coverLayers, { y: "18vh", ease: "none", scrollTrigger: { trigger: ".scene--cover", start: "top top", end: "bottom top", scrub: true } });
+      gsap.to(heroStar, { opacity: 0, ease: "none", scrollTrigger: { trigger: ".scene--cover", start: "top top", end: "60% top", scrub: true } });
+    }
+    // Part numerals drift a little slower than the page, so the divider feels like a held breath
+    if (!RM) $$(".scene--part .numeral").forEach(n => {
+      gsap.fromTo(n, { y: 60, scale: 0.94 }, { y: -60, scale: 1.04, ease: "none", scrollTrigger: { trigger: n.closest(".scene--part"), start: "top bottom", end: "bottom top", scrub: 0.8 } });
+    });
+    // The fall: when the last line of chapter 26 arrives, the whole page holds its breath
+    const fallBeat = $$("#c26c .text .beat").pop();
+    const vig0 = $("#vignette");
+    if (fallBeat && vig0) {
+      ScrollTrigger.create({ trigger: fallBeat, start: "top 70%", once: true, onEnter: () => {
+        gsap.timeline().to(vig0, { opacity: RM ? 0.5 : 0.92, duration: 2.4, ease: "sine.inOut" }).to(vig0, { opacity: 0, duration: 5, ease: "sine.inOut" });
+      } });
+    }
+    // The shelf: the constellation draws itself as it comes into view
+    const cons = $(".scene--shelf .constellation");
+    if (cons) {
+      const lines = $$("svg.lines line", cons), cstars = $$(".cstar:not(.cstar--rose)", cons);
+      lines.forEach(l => { l.setAttribute("pathLength", "1"); l.style.strokeDasharray = "1"; l.style.strokeDashoffset = "1"; });
+      gsap.set(cstars, { opacity: 0, scale: 0.3 });
+      ScrollTrigger.create({ trigger: cons, start: "top 70%", once: true, onEnter: () => {
+        gsap.to(cstars, { opacity: 1, scale: 1, duration: RM ? 0.3 : 1.2, ease: "power2.out", stagger: RM ? 0 : 0.09 });
+        gsap.to(lines, { strokeDashoffset: 0, duration: RM ? 0.3 : 0.9, ease: "power1.inOut", stagger: RM ? 0 : 0.12, delay: RM ? 0 : 0.4 });
+      } });
+    }
+    // The colophon: night turns to dawn over the rooftops as the last lines scroll by
+    $$(".slot img.xfade").forEach(x => {
+      const sec = x.closest(".scene"), text = $(".text", sec);
+      if (!sec || !text) return;
+      gsap.fromTo(x, { opacity: 0 }, { opacity: 1, ease: "none", scrollTrigger: { trigger: text, start: "top 55%", end: "bottom 92%", scrub: 0.5 } });
+    });
 
     // Part rule draws itself
     $$(".scene--part .rule").forEach(r => {
