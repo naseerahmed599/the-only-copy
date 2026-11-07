@@ -14,7 +14,7 @@
   const CONFIG = {
     // Optional passphrase gate. Set enabled:true and an answer; compare is case/diacritic/whitespace-insensitive.
     // sealed: the story and her photograph are encrypted with the answer (tools/seal.cjs); the answer is stored nowhere.
-    gate: { enabled: true, sealed: true, answer: "", hint: "The funniest sentence from the spy game.", title: "This edition opens with a word." },
+    gate: { enabled: true, sealed: true, answer: "", greeting: "Hello. This was made for you.", title: "It opens with a sentence.", hint: "The funniest one from the spy game." },
     gateStorageKey: "onlycopy.gate",
     vignette: { duration: 2.0 },                       // chapter-transition dip, seconds
     heroStar: { period: 8000, x: 0.66, y: 0.24 },      // the one bright star on the cover: pulses every ~8 s
@@ -1264,7 +1264,7 @@
      in the browser. Nothing readable sits in the repository.
      ════════════════════════════════════════════════════════════ */
   const Sealed = (() => {
-    const norm = v => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, "");
+    const norm = v => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
     const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
     const b64e = u8 => btoa(String.fromCharCode(...new Uint8Array(u8)));
     const ok = () => !!(window.crypto && crypto.subtle && window.TextEncoder);
@@ -1306,6 +1306,7 @@
       const input = h("input", { id: "gate-input", type: "text", autocomplete: "off", autocapitalize: "off", autocorrect: "off", spellcheck: "false", autofocus: true, placeholder: " ", "aria-describedby": "gate-hint" });
       field.appendChild(input);
       const form = h("form.gate-card", { novalidate: true },
+        CONFIG.gate.greeting ? h("p.gate-greeting", { text: CONFIG.gate.greeting }) : null,
         h("h1.gate-title", { id: "gate-title", text: CONFIG.gate.title || "This edition opens with a word." }),
         h("p.gate-hint", { id: "gate-hint", text: CONFIG.gate.hint || "" }),
         h("label.vh", { for: "gate-input", text: "Your answer" }),

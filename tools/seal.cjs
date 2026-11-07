@@ -12,7 +12,7 @@ const subtle = webcrypto.subtle; const getRandomValues = a => webcrypto.getRando
 
 const phrase = process.argv[2] || process.env.SEAL_PHRASE;
 if (!phrase) { console.error("usage: node tools/seal.cjs \"the phrase\""); process.exit(1); }
-const norm = v => String(v).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, "");
+const norm = v => String(v).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
 const root = path.join(__dirname, "..");
 const b64 = u8 => Buffer.from(u8).toString("base64");
 
