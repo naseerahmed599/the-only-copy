@@ -23,7 +23,9 @@ const b64 = u8 => Buffer.from(u8).toString("base64");
   const photoPath = path.join(root, "img", "39-her-shelf.jpg");
   const photo = fs.existsSync(photoPath) ? fs.readFileSync(photoPath) : null;
 
-  const salt = getRandomValues(new Uint8Array(16));
+  // keep the salt from a previous seal so a device that remembered the key keeps opening the edition
+  const prev = path.join(root, "sealed", "story.json");
+  const salt = fs.existsSync(prev) ? new Uint8Array(Buffer.from(JSON.parse(fs.readFileSync(prev, "utf8")).salt, "base64")) : getRandomValues(new Uint8Array(16));
   const km = await subtle.importKey("raw", Buffer.from(norm(phrase), "utf8"), "PBKDF2", false, ["deriveKey"]);
   const key = await subtle.deriveKey({ name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
   async function seal(bytes, kind) {
