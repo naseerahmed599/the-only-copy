@@ -268,29 +268,29 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
   background: radial-gradient(100% 70% at 50% 100%, rgba(7,11,31,.35), transparent 70%);
 }
 #gate .gate-card { width: min(28rem, 100%); }
-#gate .gate-greeting { font-family: var(--serif); font-style: italic; font-size: clamp(1.2rem, 1rem + .8vw, 1.6rem); color: var(--gold); margin: 0 0 1.6rem; }
+#gate .gate-greeting { font-family: var(--serif); font-style: italic; font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.2rem); color: var(--gold); margin: 0 0 1.4rem; }
 #gate .gate-title {
   font-family: var(--serif); font-weight: 400; font-style: italic;
-  font-size: clamp(1.6rem, 5.4vw, 2.3rem); line-height: 1.25;
-  color: var(--ink); margin: 0 0 1.1rem; text-wrap: balance;
+  font-size: clamp(2rem, 1.5rem + 2.2vw, 3.2rem); line-height: 1.2;
+  color: var(--ink); margin: 0 0 1.2rem; text-wrap: balance;
 }
 #gate .gate-hint {
-  font-family: var(--caps); font-size: .98rem; letter-spacing: .22em; font-weight: 600;
-  color: var(--gold); opacity: .9; margin: 0 0 2.6rem; min-height: 1.4em;
+  font-family: var(--serif); font-size: clamp(1.15rem, 1rem + .6vw, 1.5rem); letter-spacing: 0; font-weight: 400;
+  color: var(--ink-dim); margin: 0 0 2.8rem; min-height: 1.4em;
 }
-#gate .gate-field { position: relative; width: min(18rem, 80%); margin: 0 auto; transition: opacity .4s; }
+#gate .gate-field { position: relative; width: min(24rem, 88%); margin: 0 auto; transition: opacity .4s; }
 #gate .gate-card.is-busy .gate-field { opacity: .5; }
 #gate input {
   width: 100%; padding: .5rem 0 .55rem;
-  font-family: var(--serif); font-size: 1.5rem; letter-spacing: .08em; text-align: center;
+  font-family: var(--serif); font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem); letter-spacing: .04em; text-align: center;
   color: var(--ink); background: transparent; border: 0;
-  border-bottom: 1px solid rgba(243,238,226,.35); border-radius: 0;
+  border-bottom: 1px solid rgba(243,238,226,.5); border-radius: 0;
   outline: none; caret-color: var(--gold);
   transition: border-color .4s;
 }
 #gate input:focus { border-bottom-color: var(--gold); }
 #gate input::placeholder { color: transparent; }
-#gate .gate-foot { font-family: var(--caps); font-size: .85rem; letter-spacing: .2em; color: var(--ink-faint); margin: 1.2rem 0 0; }
+#gate .gate-foot { font-family: var(--caps); font-size: 1rem; letter-spacing: .2em; color: var(--ink-dim); margin: 1.4rem 0 0; }
 #gate .gate-field.is-wrong { animation: gateShake .5s var(--ease-out); }
 #gate .gate-field.is-wrong input { border-bottom-color: var(--rose); }
 @keyframes gateShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-7px); } 45% { transform: translateX(6px); } 70% { transform: translateX(-3px); } }
