@@ -19,7 +19,7 @@
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
-  --measure: 36ch;
+  --measure: 35ch;
   --vh: 100vh;                 /* fallback, overridden below */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --t-mood: 1800ms;
@@ -140,7 +140,7 @@ body[data-mood="deep"]  .tint--deep { opacity: 1; }
 
 .caption {
   font-family: var(--caps);
-  font-size: .95rem; letter-spacing: .22em; font-weight: 500;
+  font-size: 1.02rem; letter-spacing: .22em; font-weight: 500;
   color: var(--gold); opacity: .85;
   margin: 0 0 1rem;
 }
@@ -155,8 +155,8 @@ body[data-mood="deep"]  .tint--deep { opacity: 1; }
 }
 .beat {
   max-width: var(--measure);
-  font-size: clamp(1.15rem, 1.05rem + .45vw, 1.3rem);
-  line-height: 1.7;
+  font-size: clamp(1.22rem, 1.02rem + .7vw, 1.55rem);
+  line-height: 1.66;
   margin: 0 auto 1.45em;
   color: var(--ink);
 }
@@ -169,7 +169,7 @@ body[data-mood="deep"]  .tint--deep { opacity: 1; }
   margin: 2.4rem auto 0;
   padding-left: 1.6rem;
   font-style: italic;
-  font-size: 1.02rem;
+  font-size: clamp(1.08rem, .95rem + .45vw, 1.3rem);
   line-height: 1.55;
   color: var(--gold);
   opacity: .92;
@@ -334,8 +334,8 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
   color: var(--gold); margin: 0 0 1.5rem;
 }
 .scene--cover .title { font-size: clamp(2.8rem, 10.5vw, 5.6rem); font-weight: 400; letter-spacing: .01em; margin-bottom: .6rem; }
-.scene--cover .sub { font-style: italic; color: var(--ink-dim); margin: 0 0 2.2rem; font-size: 1.05rem; }
-.scene--cover .beat { font-size: 1.15rem; margin-bottom: 1.1em; }
+.scene--cover .sub { font-style: italic; color: var(--ink-dim); margin: 0 0 2.2rem; font-size: clamp(1.1rem, 1rem + .4vw, 1.35rem); }
+.scene--cover .beat { font-size: clamp(1.2rem, 1.05rem + .5vw, 1.45rem); margin-bottom: 1.1em; }
 .scene--cover .hint {
   margin-top: 3rem;
   font-family: var(--caps); font-size: .9rem; letter-spacing: .18em;
@@ -350,7 +350,7 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
   padding: 18vh 1.5rem;
   text-align: center;
 }
-.scene--dedication .title { font-size: clamp(1.4rem, 4vw, 2rem); font-style: italic; color: var(--gold); margin-bottom: 2.6rem; }
+.scene--dedication .title { font-size: clamp(1.6rem, 4vw, 2.4rem); font-style: italic; color: var(--gold); margin-bottom: 2.6rem; }
 .scene--dedication .beat { margin-bottom: 1.8em; }
 
 /* ── Part divider ─────────────────────────────────────────── */
@@ -661,6 +661,27 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 
 /* ── Shelf / constellation ────────────────────────────────── */
 .scene--shelf { position: relative; padding-top: 14vh; text-align: center; }
+.shelf-photo {
+  position: relative; margin: 0 auto 6vh; width: min(92vw, 60rem);
+  -webkit-mask-image: radial-gradient(120% 100% at 50% 45%, #000 55%, rgba(0,0,0,.75) 78%, transparent 100%);
+          mask-image: radial-gradient(120% 100% at 50% 45%, #000 55%, rgba(0,0,0,.75) 78%, transparent 100%);
+}
+.shelf-photo img {
+  display: block; width: 100%; height: auto;
+  filter: saturate(.85) contrast(1.02) brightness(.9);
+  opacity: 0; transition: opacity 1.6s ease; transform-origin: 50% 50%;
+}
+.shelf-photo.is-loaded img { opacity: 1; }
+.shelf-photo::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(7,11,31,.35), rgba(7,11,31,0) 30%, rgba(7,11,31,0) 60%, rgba(7,11,31,.55) 100%);
+}
+.shelf-photo figcaption {
+  position: absolute; left: 0; right: 0; bottom: 1.1rem; z-index: 1;
+  font-family: var(--serif); font-style: italic; font-size: 1.02rem; color: var(--ink-dim);
+  text-shadow: 0 1px 12px rgba(7,11,31,.9);
+}
+@media (min-width: 900px) { .shelf-photo { margin-top: 2vh; } .shelf-photo figcaption { font-size: 1.1rem; } }
 .scene--shelf .text { padding: 0 1.5rem 3rem; max-width: 44rem; margin: 0 auto; }
 .scene--shelf .constellation {
   position: relative; width: 100%; height: var(--vh);
@@ -691,6 +712,11 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 .cstar.is-edge.is-lit .tip { transform: translateY(0); }
 .cstar.is-edge-l .tip { left: -10px; right: auto; transform: translateY(6px); }
 .cstar.is-edge-l.is-lit .tip { transform: translateY(0); }
+/* the reader's own sky: star size carries the time she stayed, so a tap only shows the name */
+.ystar i { background: var(--ink); box-shadow: 0 0 8px rgba(243,238,226,.55), 0 0 18px rgba(232,200,114,.18); }
+.ystar.is-lit i { background: var(--gold); transform: none; box-shadow: 0 0 10px var(--gold), 0 0 24px var(--gold-glow); }
+.ix-yoursky .constellation svg.lines line { stroke: rgba(243,238,226,.16); }
+.scene--yoursky { padding-top: 8vh; }
 .cstar--rose { pointer-events: none; opacity: 0; transition: opacity 3s ease; }
 .cstar--rose i { width: 6px; height: 6px; background: var(--rose); box-shadow: 0 0 16px var(--rose), 0 0 40px var(--rose-glow); animation: glow 3.4s ease-in-out infinite; }
 .cstar--rose.is-shown { opacity: 1; }
@@ -712,7 +738,7 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 .secret-star:focus-visible { outline: 1px solid var(--gold-soft); outline-offset: -8px; border-radius: 50%; }
 .secret-text {
   margin: 0; padding-left: .4rem;
-  font-style: italic; font-size: 1.02rem; line-height: 1.55; color: var(--gold);
+  font-style: italic; font-size: clamp(1.08rem, .95rem + .45vw, 1.3rem); line-height: 1.55; color: var(--gold);
   max-height: 0; opacity: 0; overflow: hidden; transform: translateY(6px);
   transition: max-height 1s var(--ease-out), opacity .9s ease, transform .9s var(--ease-out);
 }

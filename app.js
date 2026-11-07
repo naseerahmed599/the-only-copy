@@ -410,6 +410,26 @@
   })();
 
   /* ════════════════════════════════════════════════════════════
+     Dwell: how long the reader stays in each scene. Counted only
+     while the page is visible and she has moved in the last minute.
+     Kept in this browser only; nothing is sent anywhere.
+     ════════════════════════════════════════════════════════════ */
+  const Dwell = (() => {
+    const KEY = "onlycopy.sky";
+    let data = {};
+    try { data = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (_) { data = {}; }
+    let current = null, lastActive = Date.now(), dirty = false, tick = 0;
+    const touch = () => { lastActive = Date.now(); };
+    ["scroll", "pointerdown", "touchstart", "keydown", "wheel"].forEach(ev => window.addEventListener(ev, touch, { passive: true }));
+    setInterval(() => {
+      if (!current || document.visibilityState !== "visible" || Date.now() - lastActive > 60000) return;
+      data[current] = (data[current] || 0) + 1; dirty = true;
+      if (++tick % 5 === 0 && dirty) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (_) {} dirty = false; }
+    }, 1000);
+    return { setCurrent: id => { current = id; }, get: () => Object.assign({}, data) };
+  })();
+
+  /* ════════════════════════════════════════════════════════════
      Scene renderers
      ════════════════════════════════════════════════════════════ */
   const partNames = []; // { el, name } for the progress label
@@ -492,6 +512,16 @@
 
   function renderShelf(s) {
     const sec = h("section.scene.scene--shelf", { id: s.id, dataset: { mood: s.mood } });
+    if (s.img) {
+      // her real shelf, laid on the night like a photograph on a table; it fades as the sky takes over below
+      const fig = h("figure.shelf-photo.rv");
+      const img = h("img", { src: "img/" + s.img, alt: "A shelf of thirty editions of The Little Prince", loading: "lazy", decoding: "async" });
+      img.addEventListener("load", () => fig.classList.add("is-loaded"));
+      img.addEventListener("error", () => fig.remove());
+      fig.appendChild(img);
+      if (s.photoCaption) fig.appendChild(h("figcaption", { text: s.photoCaption }));
+      sec.appendChild(fig);
+    }
     const text = h("div.text");
     text.appendChild(h("p.caption.rv", { text: "Epilogue" }));
     text.appendChild(h("h2.title.rv", { text: s.title }));
@@ -504,6 +534,69 @@
     sec.appendChild(box);
     partNames.push({ el: sec, name: "Epilogue · The Shelf" });
     return sec;
+  }
+
+  /** The sky she made: built when it comes into view, from the dwell so far */
+  function renderYourSky(s) {
+    const sec = h("section.scene.scene--shelf.scene--yoursky", { id: s.id, dataset: { mood: s.mood } });
+    const text = h("div.text");
+    text.appendChild(h("p.caption.rv", { text: "Epilogue · continued" }));
+    text.appendChild(h("h2.title.rv", { text: s.title }));
+    (s.beats || []).forEach(b => text.appendChild(h("p.beat.rv", { text: b })));
+    if (s.interactionText) text.appendChild(h("p.prompt.rv.shelf-prompt", { text: s.interactionText }));
+    sec.appendChild(text);
+    const box = h("div.interaction.ix-constellation.ix-yoursky", { dataset: { kind: "yoursky" }, style: "max-width:none;margin:0" });
+    sec.appendChild(box);
+    sec._buildSky = () => buildYourSky(box);
+    return sec;
+  }
+
+  /** One star per chapter, placed in reading order left to right, sized by time spent */
+  function buildYourSky(box) {
+    if (box.dataset.built) return; box.dataset.built = "1";
+    const chapters = (window.SCENES || []).filter(x => x.kind === "chapter" || x.kind === "interlude");
+    const dwell = Dwell.get();
+    const max = Math.max(1, ...chapters.map(c => dwell[c.id] || 0));
+    const wrap = h("div.constellation", { role: "group", "aria-label": "The sky you made by reading" });
+    const lines = svg(`<svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>`);
+    wrap.appendChild(lines);
+    const rnd = seeded(1900 + chapters.length);
+    const pts = chapters.map((c, i) => {
+      const t = (i + 0.5) / chapters.length;
+      const x = 6 + t * 88 + (rnd() - 0.5) * 3;
+      // a slow wave with a seeded wander, so the path reads like a hand-drawn line across the sky
+      const y = 50 + Math.sin(t * Math.PI * 2.6 + 0.6) * 22 + (rnd() - 0.5) * 26;
+      return { x: clamp(x, 4, 96), y: clamp(y, 12, 86) };
+    });
+    for (let i = 1; i < pts.length; i++) {
+      const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      l.setAttribute("x1", pts[i - 1].x); l.setAttribute("y1", pts[i - 1].y);
+      l.setAttribute("x2", pts[i].x); l.setAttribute("y2", pts[i].y);
+      l.setAttribute("vector-effect", "non-scaling-stroke");
+      lines.appendChild(l);
+    }
+    const phrase = s => s < 8 ? "passed through" : s < 45 ? "a moment" : s < 150 ? "a while" : s < 3600 ? Math.round(s / 60) + (s < 90 ? " minute" : " minutes") : "a long time";
+    chapters.forEach((c, i) => {
+      const d = dwell[c.id] || 0;
+      const size = d ? 3 + 9 * Math.sqrt(d / max) : 2;
+      const st = h("div.cstar.ystar", { style: `left:${pts[i].x}%;top:${pts[i].y}%`, role: "button", tabindex: "0", "aria-label": c.title + ", " + phrase(d) },
+        h("i", { style: `width:${size}px;height:${size}px;opacity:${d ? 0.55 + 0.45 * Math.sqrt(d / max) : 0.25}` }),
+        h("span.tip", { text: c.title + " · " + phrase(d) }));
+      if (pts[i].x > 78) st.classList.add("is-edge"); else if (pts[i].x < 22) st.classList.add("is-edge-l");
+      const tap = () => { $$(".ystar.is-lit", wrap).forEach(o => { if (o !== st) o.classList.remove("is-lit"); }); st.classList.toggle("is-lit"); if (st.classList.contains("is-lit")) Audio.ding(rand(700, 1100)); };
+      st.addEventListener("click", tap);
+      st.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(); } });
+      wrap.appendChild(st);
+    });
+    box.appendChild(wrap);
+    // the sky draws itself in her reading order
+    if (HAS_GSAP) {
+      const ls = $$("svg.lines line", wrap), ss = $$(".ystar", wrap);
+      ls.forEach(l => { l.setAttribute("pathLength", "1"); l.style.strokeDasharray = "1"; l.style.strokeDashoffset = "1"; });
+      gsap.set(ss, { opacity: 0, scale: 0.4 });
+      gsap.to(ss, { opacity: 1, scale: 1, duration: RM ? 0.3 : 0.9, ease: "power2.out", stagger: RM ? 0 : 0.07 });
+      gsap.to(ls, { strokeDashoffset: 0, duration: RM ? 0.3 : 0.5, ease: "none", stagger: RM ? 0 : 0.07, delay: RM ? 0 : 0.5 });
+    }
   }
 
   /** Unveil a riddle chapter (button or scroll threshold) */
@@ -526,6 +619,7 @@
         case "chapter": el = renderChapterLike(s, "chapter", prevNum); break;
         case "interlude": el = renderChapterLike(s, "interlude"); break;
         case "shelf": el = renderShelf(s); break;
+        case "yoursky": el = renderYourSky(s); break;
         case "end": el = renderChapterLike(s, "end"); break;
         default: return;
       }
@@ -947,7 +1041,8 @@
       // no GSAP: show everything, pick mood by IntersectionObserver
       $$(".rv").forEach(el => el.classList.add("is-in"));
       $$(".scene--part .rule").forEach(r => r.style.transform = "none");
-      const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) setMood(e.target.dataset.mood); }), { rootMargin: "-45% 0px -45% 0px" });
+      const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { setMood(e.target.dataset.mood); Dwell.setCurrent(e.target.id); } }), { rootMargin: "-45% 0px -45% 0px" });
+      const ys = $(".scene--yoursky"); if (ys && ys._buildSky) ys._buildSky();
       $$(".scene").forEach(s => io.observe(s));
       $$(".scene.is-veiled").forEach(s => s.classList.remove("is-veiled"));
       return;
@@ -958,7 +1053,7 @@
       const mood = sec.dataset.mood;
       ScrollTrigger.create({
         trigger: sec, start: CONFIG.moodTrigger.start, end: CONFIG.moodTrigger.end,
-        onEnter: () => setMood(mood), onEnterBack: () => setMood(mood)
+        onEnter: () => { setMood(mood); Dwell.setCurrent(sec.id); }, onEnterBack: () => { setMood(mood); Dwell.setCurrent(sec.id); }
       });
     });
 
@@ -1011,6 +1106,15 @@
         gsap.timeline().to(vig0, { opacity: RM ? 0.5 : 0.92, duration: 2.4, ease: "sine.inOut" }).to(vig0, { opacity: 0, duration: 5, ease: "sine.inOut" });
       } });
     }
+    // Her shelf: the photograph breathes slowly and lets go as the sky below it arrives
+    const shelfPhoto = $(".shelf-photo img");
+    if (shelfPhoto && !RM) {
+      gsap.fromTo(shelfPhoto, { scale: 1.04 }, { scale: 1, ease: "none", scrollTrigger: { trigger: ".shelf-photo", start: "top bottom", end: "bottom top", scrub: 0.6 } });
+      gsap.to(".shelf-photo", { opacity: 0.35, ease: "none", scrollTrigger: { trigger: ".scene--shelf .constellation", start: "top 90%", end: "top 30%", scrub: true } });
+    }
+    // Her reading, as a sky: built from the dwell so far, the moment the scene comes into view
+    const ys = $(".scene--yoursky");
+    if (ys && ys._buildSky) ScrollTrigger.create({ trigger: ys, start: "top 110%", onEnter: ys._buildSky, onEnterBack: ys._buildSky });
     // The pocket: each kept thing appears as its last line scrolls into view
     Object.keys(CONFIG.pocket).forEach(id => {
       const beats = $$("#" + id + " .text .beat"); const last = beats[beats.length - 1];
