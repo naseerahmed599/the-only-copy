@@ -514,11 +514,11 @@
     const sec = h("section.scene.scene--shelf", { id: s.id, dataset: { mood: s.mood } });
     if (s.img) {
       // her real shelf, laid on the night like a photograph on a table; it fades as the sky takes over below
-      const fig = h("figure.shelf-photo.rv");
+      const fig = h("figure.shelf-photo");
       const img = h("img", { src: "img/" + s.img, alt: "A shelf of thirty editions of The Little Prince", loading: "lazy", decoding: "async" });
       img.addEventListener("load", () => fig.classList.add("is-loaded"));
       img.addEventListener("error", () => fig.remove());
-      fig.appendChild(img);
+      const frame = h("div.shelf-frame"); frame.appendChild(img); fig.appendChild(frame);
       if (s.photoCaption) fig.appendChild(h("figcaption", { text: s.photoCaption }));
       sec.appendChild(fig);
     }
@@ -575,7 +575,7 @@
       l.setAttribute("vector-effect", "non-scaling-stroke");
       lines.appendChild(l);
     }
-    const phrase = s => s < 8 ? "passed through" : s < 45 ? "a moment" : s < 150 ? "a while" : s < 3600 ? Math.round(s / 60) + (s < 90 ? " minute" : " minutes") : "a long time";
+    const phrase = s => s < 8 ? "passed through" : s < 45 ? "a moment" : s < 150 ? "a while" : s < 3600 ? Math.floor(s / 60) + " minutes" : "a long time";
     chapters.forEach((c, i) => {
       const d = dwell[c.id] || 0;
       const size = d ? 3 + 9 * Math.sqrt(d / max) : 2;
@@ -1110,7 +1110,7 @@
     const shelfPhoto = $(".shelf-photo img");
     if (shelfPhoto && !RM) {
       gsap.fromTo(shelfPhoto, { scale: 1.04 }, { scale: 1, ease: "none", scrollTrigger: { trigger: ".shelf-photo", start: "top bottom", end: "bottom top", scrub: 0.6 } });
-      gsap.to(".shelf-photo", { opacity: 0.35, ease: "none", scrollTrigger: { trigger: ".scene--shelf .constellation", start: "top 90%", end: "top 30%", scrub: true } });
+      gsap.fromTo(".shelf-frame", { opacity: 1 }, { opacity: 0.35, ease: "none", immediateRender: false, scrollTrigger: { trigger: ".scene--shelf .constellation", start: "top 90%", end: "top 30%", scrub: true } });
     }
     // Her reading, as a sky: built from the dwell so far, the moment the scene comes into view
     const ys = $(".scene--yoursky");
