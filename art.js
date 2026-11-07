@@ -284,11 +284,12 @@ ${extra || ""}</defs>`;
   const seatedChair = (x, y, s, col, scarfCol) => `<g class="art-chair" style="transform-origin:${x}px ${y}px"><g transform="translate(${x} ${y}) scale(${s})">
 <path d="M-17 0V-34M17 0V-34M-11 -3V-34M11 -3V-34" stroke="${col}" stroke-width="3.2" stroke-linecap="round"/>
 <rect x="-21" y="-38" width="42" height="5" rx="1.5" fill="${col}"/>
-<path d="M-18 -38V-82Q-18 -90 -10 -90H10Q18 -90 18 -82V-38" fill="none" stroke="${col}" stroke-width="4.5" stroke-linecap="round"/>
-<path d="M-11 -46V-84M0 -46V-86M11 -46V-84" stroke="${col}" stroke-width="2.2" opacity=".9"/>
-<path d="M-15 -86Q0 -98 15 -86L15 -78L-15 -78Z" fill="${col}"/>
-<circle cx="0" cy="-104" r="10" fill="${col}"/>
-<g class="art-scarf" style="transform-origin:-8px -92px"><path d="M-8 -92C-30 -94 -50 -78 -74 -84C-94 -89 -110 -74 -128 -76" fill="none" stroke="${scarfCol || C.gold}" stroke-width="5.5" stroke-linecap="round" opacity=".92"/></g>
+<path d="M-18 -38V-62Q-18 -68 -12 -68H12Q18 -68 18 -62V-38" fill="none" stroke="${col}" stroke-width="4.5" stroke-linecap="round"/>
+<path d="M-9 -44V-64M9 -44V-64" stroke="${col}" stroke-width="2.2" opacity=".9"/>
+<path d="M-26 -62Q-26 -84 -8 -88L0 -90L8 -88Q26 -84 26 -62Q14 -70 0 -70Q-14 -70 -26 -62Z" fill="${col}"/>
+<path d="M-24 -66Q-30 -58 -27 -46M24 -66Q30 -58 27 -46" stroke="${col}" stroke-width="5" stroke-linecap="round" fill="none"/>
+<circle cx="0" cy="-101" r="11.5" fill="${col}"/>
+<g class="art-scarf" style="transform-origin:-10px -88px"><path d="M-10 -88C-32 -90 -52 -74 -76 -80C-96 -85 -112 -70 -130 -72" fill="none" stroke="${scarfCol || C.gold}" stroke-width="5.5" stroke-linecap="round" opacity=".92"/></g>
 </g></g>`;
   const lamppost = (id, x, y, s) => `<g><circle cx="${x}" cy="${y - 150 * s}" r="${150 * s}" fill="url(#${id}-sunglow)" class="art-glow" opacity=".9"/><rect x="${x - 3 * s}" y="${y - 140 * s}" width="${6 * s}" height="${140 * s}" fill="${C.ink}"/><path d="M${x - 16 * s} ${y - 140 * s}h${32 * s}l${-6 * s} ${-30 * s}h${-20 * s}Z" fill="${C.ink}"/><rect x="${x - 10 * s}" y="${y - 168 * s}" width="${20 * s}" height="${28 * s}" fill="#fff3d0" opacity=".95"/><path d="M${x - 14 * s} ${y - 170 * s}h${28 * s}l${-14 * s} ${-12 * s}Z" fill="${C.ink}"/></g>`;
   const wall = (x, y, w, h, col, light) => { let s = `<rect x="${x}" y="${y - h}" width="${w}" height="${h}" rx="3" fill="${col}"/>`; for (let i = 1; i < 4; i++) s += `<path d="M${x} ${y - h + i * h / 4}H${x + w}" stroke="${light}" stroke-opacity=".18" stroke-width="2"/>`; for (let i = 0; i < 10; i++) s += `<path d="M${r1(x + ((i * 53 + (i % 2) * 27) % w))} ${r1(y - h + (i % 4) * h / 4)}v${h / 4}" stroke="${light}" stroke-opacity=".14" stroke-width="2"/>`; s += `<path d="M${x} ${y - h}L${x + w * .3} ${y - h - 10}L${x + w * .55} ${y - h + 2}L${x + w * .8} ${y - h - 8}L${x + w} ${y - h}" fill="${col}"/>`; return s; };

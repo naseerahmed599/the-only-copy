@@ -13,7 +13,8 @@
      ════════════════════════════════════════════════════════════ */
   const CONFIG = {
     // Optional passphrase gate. Set enabled:true and an answer; compare is case/diacritic/whitespace-insensitive.
-    gate: { enabled: false, answer: "", hint: "", title: "This edition opens with a word." },
+    // sealed: the story and her photograph are encrypted with the answer (tools/seal.cjs); the answer is stored nowhere.
+    gate: { enabled: true, sealed: true, answer: "", hint: "The funniest sentence from the spy game.", title: "This edition opens with a word." },
     gateStorageKey: "onlycopy.gate",
     vignette: { duration: 2.0 },                       // chapter-transition dip, seconds
     heroStar: { period: 8000, x: 0.66, y: 0.24 },      // the one bright star on the cover: pulses every ~8 s
@@ -504,7 +505,6 @@
     if (kind === "end") {
       if (s.sign) text.appendChild(h("p.sign.rv", { text: s.sign }));
       text.appendChild(h("div.stamp.rv", { text: "print run · 1 of 1", "aria-label": "Print run: 1 of 1" }));
-      text.appendChild(h("p.credits.rv", null, h("a", { href: "CREDITS.txt", text: "photographs · credits" })));
     }
     sec.appendChild(text);
     return sec;
@@ -515,7 +515,8 @@
     if (s.img) {
       // her real shelf, laid on the night like a photograph on a table; it fades as the sky takes over below
       const fig = h("figure.shelf-photo");
-      const img = h("img", { src: "img/" + s.img, alt: "A shelf of thirty editions of The Little Prince", loading: "lazy", decoding: "async" });
+      const src = (window.SEALED_ASSETS && window.SEALED_ASSETS[s.img]) || ("img/" + s.img);
+      const img = h("img", { src, alt: "A shelf of thirty editions of The Little Prince", loading: "lazy", decoding: "async" });
       img.addEventListener("load", () => fig.classList.add("is-loaded"));
       img.addEventListener("error", () => fig.remove());
       const frame = h("div.shelf-frame"); frame.appendChild(img); fig.appendChild(frame);
@@ -1255,11 +1256,47 @@
      Passphrase gate (optional). Nothing of the story renders until
      it is solved, so the page height gives nothing away.
      ════════════════════════════════════════════════════════════ */
-  const Gate = (() => {
+  /* ════════════════════════════════════════════════════════════
+     Sealed edition. The story (and her photograph) live in sealed/
+     as AES-GCM ciphertext; the key is derived from the gate phrase
+     in the browser. Nothing readable sits in the repository.
+     ════════════════════════════════════════════════════════════ */
+  const Sealed = (() => {
     const norm = v => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, "");
+    const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+    const b64e = u8 => btoa(String.fromCharCode(...new Uint8Array(u8)));
+    const ok = () => !!(window.crypto && crypto.subtle && window.TextEncoder);
+    async function pkg(p) { const r = await fetch(p); if (!r.ok) throw new Error("missing " + p); return r.json(); }
+    async function keyFromPhrase(phrase, salt) {
+      const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(norm(phrase)), "PBKDF2", false, ["deriveKey"]);
+      return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, true, ["decrypt"]);
+    }
+    const keyFromRaw = raw => crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, true, ["decrypt"]);
+    const open = (key, p) => crypto.subtle.decrypt({ name: "AES-GCM", iv: b64d(p.iv) }, key, b64d(p.data));
+    /** Try a phrase (or a remembered raw key). Resolves to the raw key once the story is open; rejects otherwise. */
+    async function unlock(secret, isRaw) {
+      if (!ok()) throw new Error("no-crypto");
+      const story = await pkg("sealed/story.json");
+      const key = isRaw ? await keyFromRaw(secret) : await keyFromPhrase(secret, b64d(story.salt));
+      const text = new TextDecoder().decode(await open(key, story));
+      window.SCENES = JSON.parse(text);
+      try {
+        const shelf = await pkg("sealed/shelf.json");
+        const bytes = await open(key, shelf);
+        window.SEALED_ASSETS = Object.assign(window.SEALED_ASSETS || {}, { "39-her-shelf.jpg": URL.createObjectURL(new Blob([bytes], { type: shelf.kind || "image/jpeg" })) });
+      } catch (_) { /* no photo sealed: the shelf renders without it */ }
+      return crypto.subtle.exportKey("raw", key);
+    }
+    function rememberKey(raw) { try { localStorage.setItem(CONFIG.gateStorageKey, "k:" + b64e(raw)); } catch (_) {} }
+    function rememberedKey() { try { const v = localStorage.getItem(CONFIG.gateStorageKey) || ""; return v.startsWith("k:") ? b64d(v.slice(2)) : null; } catch (_) { return null; } }
+    return { ok, unlock, rememberKey, rememberedKey, norm };
+  })();
+
+  const Gate = (() => {
+    const norm = Sealed.norm;
     function remembered() { try { return localStorage.getItem(CONFIG.gateStorageKey) === norm(CONFIG.gate.answer); } catch (_) { return false; } }
     function remember() { try { localStorage.setItem(CONFIG.gateStorageKey, norm(CONFIG.gate.answer)); } catch (_) {} }
-    function needed() { return !!(CONFIG.gate.enabled && CONFIG.gate.answer) && !remembered(); }
+    function needed() { return !!CONFIG.gate.enabled && (CONFIG.gate.sealed || (!!CONFIG.gate.answer && !remembered())); }
 
     function show(onUnlock) {
       document.body.classList.add("is-gated");
@@ -1277,20 +1314,31 @@
       document.body.appendChild(gate);
       setTimeout(() => input.focus(), 50);
 
+      if (CONFIG.gate.sealed && !Sealed.ok()) {
+        $(".gate-hint", form).textContent = "This browser cannot open the edition. Please open the link in Safari or Chrome.";
+      }
+      let busy = false;
+      const pass = () => {
+        input.disabled = true;
+        onUnlock();
+        const finish = () => { gate.remove(); document.body.classList.remove("is-gated"); if (HAS_GSAP) ScrollTrigger.refresh(); };
+        if (HAS_GSAP && !RM) gsap.to(gate, { opacity: 0, duration: 1.2, ease: "power2.inOut", onComplete: finish });
+        else finish();
+      };
+      const fail = () => {
+        field.classList.remove("is-wrong"); void field.offsetWidth; field.classList.add("is-wrong");
+        setTimeout(() => { input.value = ""; }, 260);
+        setTimeout(() => field.classList.remove("is-wrong"), 600);
+      };
       form.addEventListener("submit", e => {
         e.preventDefault();
-        if (norm(input.value) && norm(input.value) === norm(CONFIG.gate.answer)) {
-          remember();
-          input.disabled = true;
-          onUnlock();
-          const finish = () => { gate.remove(); document.body.classList.remove("is-gated"); if (HAS_GSAP) ScrollTrigger.refresh(); };
-          if (HAS_GSAP && !RM) gsap.to(gate, { opacity: 0, duration: 1.2, ease: "power2.inOut", onComplete: finish });
-          else finish();
-        } else {
-          field.classList.remove("is-wrong"); void field.offsetWidth; field.classList.add("is-wrong");
-          setTimeout(() => { input.value = ""; }, 260);
-          setTimeout(() => field.classList.remove("is-wrong"), 600);
-        }
+        if (busy || !norm(input.value)) return;
+        if (CONFIG.gate.sealed) {
+          busy = true; form.classList.add("is-busy");
+          Sealed.unlock(input.value).then(raw => { Sealed.rememberKey(raw); pass(); }).catch(fail).finally(() => { busy = false; form.classList.remove("is-busy"); });
+        } else if (norm(input.value) === norm(CONFIG.gate.answer)) {
+          remember(); pass();
+        } else fail();
       });
     }
     return { needed, show };
@@ -1312,9 +1360,16 @@
     const unlock = () => { Audio.resume(); window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); };
     window.addEventListener("pointerdown", unlock, { once: true });
     window.addEventListener("keydown", unlock, { once: true });
-    if (Gate.needed()) { window.scrollTo(0, 0); Gate.show(start); }
-    else start();
+    const begin = () => { if (window.SCENES) start(); else loadScript("scenes.js", start); };
+    if (!Gate.needed()) { begin(); return; }
+    window.scrollTo(0, 0);
+    if (CONFIG.gate.sealed) {
+      const raw = Sealed.rememberedKey();
+      if (raw) { Sealed.unlock(raw, true).then(start).catch(() => Gate.show(start)); return; }
+    }
+    Gate.show(begin);
   }
+  function loadScript(src, done) { const s = document.createElement("script"); s.src = src; s.onload = done; s.onerror = done; document.head.appendChild(s); }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();

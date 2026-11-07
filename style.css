@@ -277,7 +277,8 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
   font-family: var(--caps); font-size: .98rem; letter-spacing: .22em; font-weight: 600;
   color: var(--gold); opacity: .9; margin: 0 0 2.6rem; min-height: 1.4em;
 }
-#gate .gate-field { position: relative; width: min(18rem, 80%); margin: 0 auto; }
+#gate .gate-field { position: relative; width: min(18rem, 80%); margin: 0 auto; transition: opacity .4s; }
+#gate .gate-card.is-busy .gate-field { opacity: .5; }
 #gate input {
   width: 100%; padding: .5rem 0 .55rem;
   font-family: var(--serif); font-size: 1.5rem; letter-spacing: .08em; text-align: center;
