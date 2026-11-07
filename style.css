@@ -51,7 +51,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   position: absolute; inset: 0;
   opacity: 0;
   transition: opacity var(--t-mood) ease-in-out;
-  will-change: opacity;
 }
 .tint--day {
   background:
@@ -182,7 +181,7 @@ body[data-mood="deep"]  .tint--deep { opacity: 1; }
 }
 
 /* Reveal states (GSAP drives these; keep CSS fallbacks visible if JS fails) */
-.js .rv { opacity: 0; transform: translateY(24px); will-change: opacity, transform; }
+.js .rv { opacity: 0; transform: translateY(24px); }
 .js .rv.is-in { opacity: 1; transform: none; }
 
 /* ── Image slot: procedural art underneath, a real file on top when it exists ── */
@@ -198,7 +197,6 @@ body[data-mood="deep"]  .tint--deep { opacity: 1; }
   object-fit: cover; object-position: center 30%;
   opacity: 0; transition: opacity 1.2s ease;
   transform-origin: 50% 40%;
-  will-change: transform;
 }
 .slot.is-loaded img { opacity: 1; }
 .slot.is-missing img { display: none; }
@@ -218,13 +216,12 @@ body[data-mood="deep"]  .tint--deep { opacity: 1; }
   position: absolute; inset: 0;
   opacity: 1; transition: opacity 1.2s ease;
   transform-origin: 50% 40%;
-  will-change: transform;
 }
 .slot .art svg { display: block; width: 100%; height: 100%; }
 .slot.is-loaded .art { opacity: 0; }
 .slot .veil {
   position: absolute; inset: 0; pointer-events: none;
-  background: var(--sky); opacity: 0; will-change: opacity;
+  background: var(--sky); opacity: 0;
 }
 .slot .scrim {
   position: absolute; inset: 0; pointer-events: none;
@@ -837,4 +834,22 @@ body.is-gated #pocket { display: none; }
   @media (min-width: 900px) {
     .scene--chapter .hero, .scene--interlude .hero, .scene--end .hero { position: sticky; height: 100vh; }
   }
+}
+
+/* ── Phone performance ────────────────────────────────────────
+   Scenes far from the viewport stop painting entirely (app.js toggles
+   .is-far with an IntersectionObserver), so the GPU only holds the few
+   heroes near the screen instead of every one in the book. */
+.scene.is-far .hero .slot { visibility: hidden; }
+.scene.is-far .hero .slot .art svg { display: none; }
+
+@media (max-width: 899px), (pointer: coarse) {
+  /* static film grain and blend overlays are costly to composite on phones */
+  .slot.is-photo::after { display: none; }
+  /* slow whole-sky drifts repaint the full SVG every frame; too subtle to miss */
+  .art-stars, .art-birds { animation: none; }
+  /* backdrop blur over a scrolling page re-blurs every frame */
+  .ui-btn { backdrop-filter: none; background: rgba(7, 11, 31, .55); }
+  #progress .label { backdrop-filter: none; background: rgba(7, 11, 31, .85); }
+  .scene.is-veiled .hero .slot { filter: blur(10px) saturate(.8); }
 }
