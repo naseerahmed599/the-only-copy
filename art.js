@@ -280,6 +280,16 @@ ${extra || ""}</defs>`;
   const sprout = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 0V-40" stroke="#8fae62" stroke-width="3" stroke-linecap="round"/><path d="M0 -26C-14 -30 -22 -44 -20 -54C-8 -50 -2 -38 0 -26Z" fill="#8fae62"/><path d="M0 -34C14 -38 22 -52 20 -62C8 -58 2 -46 0 -34Z" fill="#b5cf7a"/></g>`;
   const baobabTree = (x, y, s, col) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M-14 0L-10 -70L-40 -100L-34 -106L-8 -82L-6 -130L6 -130L8 -82L34 -108L40 -102L10 -70L14 0Z" fill="${col}"/><ellipse cx="0" cy="-132" rx="48" ry="26" fill="${col}"/><ellipse cx="-38" cy="-104" rx="20" ry="12" fill="${col}"/><ellipse cx="38" cy="-106" rx="20" ry="12" fill="${col}"/></g>`;
   const chair = (x, y, s, col) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M-14 0V-48M-14 -24H14M14 -18V0M-10 -6V8M10 -6V8" stroke="${col}" stroke-width="4" stroke-linecap="round" fill="none"/></g>`;
+  /* the boy in his chair, from behind: legs, seat, a rounded back, head and shoulders above it, scarf in the wind */
+  const seatedChair = (x, y, s, col, scarfCol) => `<g class="art-chair" style="transform-origin:${x}px ${y}px"><g transform="translate(${x} ${y}) scale(${s})">
+<path d="M-17 0V-34M17 0V-34M-11 -3V-34M11 -3V-34" stroke="${col}" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="-21" y="-38" width="42" height="5" rx="1.5" fill="${col}"/>
+<path d="M-18 -38V-82Q-18 -90 -10 -90H10Q18 -90 18 -82V-38" fill="none" stroke="${col}" stroke-width="4.5" stroke-linecap="round"/>
+<path d="M-11 -46V-84M0 -46V-86M11 -46V-84" stroke="${col}" stroke-width="2.2" opacity=".9"/>
+<path d="M-15 -86Q0 -98 15 -86L15 -78L-15 -78Z" fill="${col}"/>
+<circle cx="0" cy="-104" r="10" fill="${col}"/>
+<g class="art-scarf" style="transform-origin:-8px -92px"><path d="M-8 -92C-30 -94 -50 -78 -74 -84C-94 -89 -110 -74 -128 -76" fill="none" stroke="${scarfCol || C.gold}" stroke-width="5.5" stroke-linecap="round" opacity=".92"/></g>
+</g></g>`;
   const lamppost = (id, x, y, s) => `<g><circle cx="${x}" cy="${y - 150 * s}" r="${150 * s}" fill="url(#${id}-sunglow)" class="art-glow" opacity=".9"/><rect x="${x - 3 * s}" y="${y - 140 * s}" width="${6 * s}" height="${140 * s}" fill="${C.ink}"/><path d="M${x - 16 * s} ${y - 140 * s}h${32 * s}l${-6 * s} ${-30 * s}h${-20 * s}Z" fill="${C.ink}"/><rect x="${x - 10 * s}" y="${y - 168 * s}" width="${20 * s}" height="${28 * s}" fill="#fff3d0" opacity=".95"/><path d="M${x - 14 * s} ${y - 170 * s}h${28 * s}l${-14 * s} ${-12 * s}Z" fill="${C.ink}"/></g>`;
   const wall = (x, y, w, h, col, light) => { let s = `<rect x="${x}" y="${y - h}" width="${w}" height="${h}" rx="3" fill="${col}"/>`; for (let i = 1; i < 4; i++) s += `<path d="M${x} ${y - h + i * h / 4}H${x + w}" stroke="${light}" stroke-opacity=".18" stroke-width="2"/>`; for (let i = 0; i < 10; i++) s += `<path d="M${r1(x + ((i * 53 + (i % 2) * 27) % w))} ${r1(y - h + (i % 4) * h / 4)}v${h / 4}" stroke="${light}" stroke-opacity=".14" stroke-width="2"/>`; s += `<path d="M${x} ${y - h}L${x + w * .3} ${y - h - 10}L${x + w * .55} ${y - h + 2}L${x + w * .8} ${y - h - 8}L${x + w} ${y - h}" fill="${col}"/>`; return s; };
   const snakePath = (x, y, s, col) => `<g><path d="M${x - 220 * s} ${y}C${x - 150 * s} ${y - 40 * s} ${x - 120 * s} ${y + 30 * s} ${x - 50 * s} ${y + 4 * s}S${x + 40 * s} ${y - 40 * s} ${x + 100 * s} ${y - 10 * s}S${x + 170 * s} ${y + 20 * s} ${x + 200 * s} ${y - 20 * s}" fill="none" stroke="${col}" stroke-width="${7 * s}" stroke-linecap="round"/><path d="M${x + 196 * s} ${y - 24 * s}l${16 * s} ${-6 * s}l${-4 * s} ${10 * s}Z" fill="${col}"/></g>`;
@@ -302,19 +312,33 @@ ${extra || ""}</defs>`;
   SCENES.c03 = id => desert(id, "dusk", { horizon: 740, stars: 60, moon: [560, 280, 26], figure: [480, 755, 1.0] });
   SCENES.c04 = id => orb(id, "night", { r: 180, cy: 500, figure: [-20, 0, 0.8], stars: 130, bright: [790, 230, 3.4] });
   SCENES.c05 = id => world(id, "day", { horizon: 720, sun: [280, 320, 50], figure: [420, 718, 0.9], front: sprout(560, 706, 1) + sprout(640, 712, 0.7) + sprout(330, 730, 0.8), behind: baobabTree(840, 740, 0.9, "#2a2016") });
-  SCENES.c06 = id => desert(id, "dusk", { horizon: 720, sun: [500, 600, 150], stars: 30, front: chair(540, 724, 1.0, "#15101f"), amp: 50 });
+  SCENES.c06 = id => desert(id, "dusk", { horizon: 720, sun: [500, 600, 150], stars: 30, front: seatedChair(556, 726, 1.0, "#15101f"), amp: 50 });
   SCENES.c07 = id => world(id, "day", { horizon: 720, sun: [260, 270, 46], figure: [380, 722, 0.85], front: rose(id, 600, 726, 0.95, false) });
   SCENES.c08 = id => world(id, "dusk", { horizon: 740, stars: 70, front: rose(id, 500, 740, 1.5, true) });
-  SCENES.c09 = id => world(id, "dusk", { horizon: 740, sun: [560, 300, 40], stars: 50, figure: [460, 738, 0.95], front: rose(id, 640, 744, 0.85, true), behind: birds(seeded(9), 180, 480, 9, "#1f1529") });
+  SCENES.c09 = id => world(id, "dusk", { horizon: 740, sun: [560, 300, 40], stars: 50, figure: [460, 738, 0.95], front: rose(id, 640, 744, 0.85, true), behind: `<g class="art-birds">${birds(seeded(9), 180, 480, 9, "#1f1529")}</g>` });
   SCENES.journeyintro = id => {
     const m = MOODS.night, rnd = seeded(hash(id));
-    let body = sky(id) + stars(id, rnd, 120, H, 1);
-    // field of asteroids: six larger ones in a loose arc, dust behind
-    const dark = mix(m.dunes[3], C.ink, 0.4), lit = mix(m.dunes[0], C.bone, 0.2);
-    let d = `<radialGradient id="${id}-a" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="${lit}"/><stop offset="1" stop-color="${dark}"/></radialGradient>`;
-    body += `<g fill="${m.dunes[1]}" opacity=".4">`; for (let i = 0; i < 30; i++) body += `<circle cx="${r1(rnd() * W)}" cy="${r1(150 + rnd() * 800)}" r="${r1(3 + rnd() * 9)}"/>`; body += `</g>`;
-    const big = [[220, 380, 60], [470, 280, 46], [720, 420, 76], [300, 620, 52], [620, 660, 40], [820, 760, 58]];
-    big.forEach(([x, y, r], i) => { let p = ""; for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2, rr = r * (0.82 + rnd() * 0.3); p += `${k ? "L" : "M"}${r1(x + Math.cos(a) * rr)} ${r1(y + Math.sin(a) * rr)}`; } body += `<path d="${p}Z" fill="url(#${id}-a)"/>`; if (i === 1) body += figure(x, y - r + 2, 0.45, dark, C.gold); });
+    let body = sky(id) + stars(id, rnd, 140, H, 1);
+    const ink = "#0c1028";
+    // six small worlds in a slow arc, each carrying the one thing its inhabitant cannot do without
+    const worlds = [
+      [190, 360, 58, (x, y) => throne(x, y, 0.3, ink)],
+      [430, 250, 46, (x, y) => hatProp(x, y, 0.34, ink)],
+      [700, 330, 62, (x, y) => bottles(x - 30, y, 0.32, ink, 3, false) + bottles(x + 6, y, 0.32, ink, 3, true)],
+      [300, 600, 54, (x, y) => desk(x, y, 0.34, ink)],
+      [580, 560, 40, (x, y) => lamppost(id, x, y, 0.36) + figure(x + 18, y, 0.2, ink, C.gold)],
+      [830, 700, 66, (x, y) => books(x, y, 0.3, ink)]
+    ];
+    let d = "";
+    worlds.forEach(([x, y, r, prop], k) => {
+      const pl = planet(id + "w" + k, x, y, r, m, { volcanoes: [] });
+      d += pl.defs;
+      body += pl.body.replace(`url(#${id}w${k}-glow)`, `url(#${id}-glow)`) + prop(x, y - r + 2);
+    });
+    // his own small planet, far to one side, where the journey begins
+    const home = planet(id + "home", 120, 900, 30, m, { volcanoes: [-30, 20], volSizes: [0.9, 0.7] });
+    d += home.defs;
+    body += home.body.replace(`url(#${id}home-glow)`, `url(#${id}-glow)`) + figure(118, 872, 0.3, ink, C.gold);
     body += grain(id);
     return wrap(id, defs(id, m, d), body);
   };
@@ -373,7 +397,14 @@ ${extra || ""}</defs>`;
   SCENES.c25b = id => desert(id, "day", { horizon: 740, sun: [260, 270, 50], stars: 6, front: wall(560, 820, 300, 70, "#846748", C.bone) + figure(640, 752, 0.85, "#3a2d20", C.gold) });
   SCENES.c26 = id => desert(id, "dusk", { horizon: 740, sun: [300, 470, 80], stars: 40, front: wall(360, 840, 320, 80, "#39233b", C.bone) + figure(480, 762, 0.9, "#15101f", C.gold) + snakePath(520, 900, 0.7, C.gold) });
   SCENES.c26b = id => desert(id, "night", { horizon: 780, stars: 160, glow: 0.3, figure: [500, 805, 0.95], bright: [330, 220, 3] });
-  SCENES.c26c = id => desert(id, "deep", { horizon: 740, stars: 120, glow: 0.3, bright: [500, 320, 3.2], amp: 40 });
+  SCENES.c26c = id => {
+    let dust = `<g class="art-dust" opacity="0">`;
+    const rnd = seeded(2626);
+    for (let i = 0; i < 16; i++) dust += `<circle cx="${r1(488 + rnd() * 24)}" cy="${r1(650 + rnd() * 80)}" r="${r1(1.2 + rnd() * 2)}" fill="${C.bone}"/>`;
+    dust += `</g>`;
+    return desert(id, "deep", { horizon: 740, stars: 120, glow: 0.3, bright: [500, 320, 3.2], amp: 40,
+      front: `<g class="art-fall">${figure(500, 738, 0.95, "#05070f", C.gold)}</g>` + dust });
+  };
   SCENES.c27 = id => desert(id, "deep", { horizon: 760, stars: 110, glow: 0.25, layers: 2, step: 160, bright: [520, 330, 4] });
   SCENES.c27b = id => desert(id, "deep", { horizon: 750, stars: 100, glow: 0.3, layers: 2, step: 170, amp: 90, bright: [480, 350, 4.4] });
   SCENES.end = id => { const m = MOODS.deep, rnd = seeded(hash(id)); let body = sky(id) + stars(id, rnd, 120, 280, 1) + horizonGlow(id, 500, 760, 700, 200, 0.4) + shelf(id, rnd, m) + grain(id); return wrap(id, defs(id, m), body); };

@@ -418,15 +418,15 @@
     const KEY = "onlycopy.sky";
     let data = {};
     try { data = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (_) { data = {}; }
-    let current = null, lastActive = Date.now(), dirty = false, tick = 0;
+    let current = null, lastActive = Date.now(), dirty = false, tick = 0, enabled = false;
     const touch = () => { lastActive = Date.now(); };
     ["scroll", "pointerdown", "touchstart", "keydown", "wheel"].forEach(ev => window.addEventListener(ev, touch, { passive: true }));
     setInterval(() => {
-      if (!current || document.visibilityState !== "visible" || Date.now() - lastActive > 60000) return;
+      if (!enabled || !current || document.visibilityState !== "visible" || Date.now() - lastActive > 60000) return;
       data[current] = (data[current] || 0) + 1; dirty = true;
       if (++tick % 5 === 0 && dirty) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (_) {} dirty = false; }
     }, 1000);
-    return { setCurrent: id => { current = id; }, get: () => Object.assign({}, data) };
+    return { setCurrent: id => { current = id; }, get: () => Object.assign({}, data), start: () => { enabled = true; lastActive = Date.now(); } };
   })();
 
   /* ════════════════════════════════════════════════════════════
@@ -755,29 +755,20 @@
 
   /* sunset → scrub the sun down with a chair; count to 44 */
   Interactions.sunset = function (box) {
-    const skyEl = h("div.scene-sky");
-    const sun = h("div.sun");
-    skyEl.appendChild(sun);
-    skyEl.appendChild(h("div.dune"));
-    skyEl.appendChild(h("div.dune.two"));
+    // The slider is the chair. Dragging it lowers the real sun in this chapter's picture and lets the dusk in.
+    // the box is built before it is attached, so the picture is looked up on first use
+    let art = null, sunG = null, chairG = null, looked = false;
+    const look = () => { if (looked) return; looked = true; const sec = box.closest(".scene"); art = sec ? $(".hero .slot .art", sec) : null; sunG = art ? $(".art-sun", art) : null; chairG = art ? $(".art-chair", art) : null; };
+    const TRAVEL = 270;                                   // viewBox units from high afternoon to below the dunes
     const range = h("input.range", { type: "range", min: "0", max: "1000", value: "0", "aria-label": "Move the chair to lower the sun" });
-    const count = h("p.count", { text: "sunset 0 / " + CONFIG.sunsets });
+    const count = h("p.count", { text: "" });
     const say = h("p.say", { text: "" });
     let n = 0, armed = true, resetting = false;
-
-    // colour stops: gold afternoon → amber → deep violet
-    const top = [[240, 192, 112], [214, 110, 90], [40, 20, 70]];
-    const bot = [[224, 138, 90], [122, 48, 78], [14, 8, 30]];
-    const mix = (a, b, t) => a.map((v, i) => Math.round(lerp(v, b[i], t)));
-    const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
+    const move = (el, x, y) => { if (!el) return; if (HAS_GSAP) gsap.set(el, { x, y }); else el.setAttribute("transform", `translate(${x} ${y})`); };
     function paint(p) {
-      const t1 = clamp(p * 2, 0, 1), t2 = clamp(p * 2 - 1, 0, 1);
-      const tc = p < 0.5 ? mix(top[0], top[1], t1) : mix(top[1], top[2], t2);
-      const bc = p < 0.5 ? mix(bot[0], bot[1], t1) : mix(bot[1], bot[2], t2);
-      skyEl.style.setProperty("--sun-sky-top", rgb(tc));
-      skyEl.style.setProperty("--sun-sky-bottom", rgb(bc));
-      sun.style.top = (12 + p * 54) + "%";
-      sun.style.opacity = String(clamp(1 - Math.max(0, p - 0.82) * 5, 0, 1));
+      look();
+      move(sunG, 0, p * TRAVEL);
+      if (art) art.style.filter = `brightness(${(1 - 0.55 * p).toFixed(3)}) saturate(${(1 - 0.2 * p).toFixed(3)})`;
     }
     function onInput() {
       if (resetting) return;
@@ -787,7 +778,8 @@
       if (armed && p >= 0.97) {
         armed = false; n = Math.min(n + 1, CONFIG.sunsets);
         count.textContent = "sunset " + n + " / " + CONFIG.sunsets;
-        say.textContent = n >= CONFIG.sunsets ? "Forty-four. He did not say whether he was sad." : (n === 1 ? "Move the chair a few steps. It is evening again." : "");
+        say.textContent = n >= CONFIG.sunsets ? "Forty-four. He did not say whether he was sad." : (n === 1 ? "You moved your chair a few steps. It is evening again." : "");
+        move(chairG, Math.min(n, 12) * 7, 0);           // the chair edges along the dune, a few steps each time
         // glide the chair back so the sun can rise again
         resetting = true;
         const obj = { v: 1000 };
@@ -798,8 +790,7 @@
     }
     range.addEventListener("input", onInput);
     range.addEventListener("pointerdown", () => Audio.resume());
-    paint(0);
-    box.appendChild(skyEl); box.appendChild(range); box.appendChild(count); box.appendChild(say);
+    box.appendChild(range); box.appendChild(count); box.appendChild(say);
   };
 
   /* counter → the businessman's stars */
@@ -1085,11 +1076,17 @@
     const coverEls = $$(".scene--cover .rv");
     const coverLayers = $$(".scene--cover .slot img, .scene--cover .slot .art");
     const heroStar = $(".scene--cover .hero-star");
-    if (!RM && coverLayers.length) gsap.fromTo(coverLayers, { scale: 1.1 }, { scale: 1, duration: 7, ease: "power2.out" });
+    // First time in a sitting: the page opens in the dark with one star, and the sky comes up slowly,
+    // the way eyes adjust at night. On a reload in the same sitting it opens at once.
+    let seen = false; try { seen = sessionStorage.getItem("onlycopy.opened") === "1"; sessionStorage.setItem("onlycopy.opened", "1"); } catch (_) {}
+    const slow = !RM && !seen && coverLayers.length;
+    const textDelay = slow ? 3.6 : 0.3;
+    if (!RM && coverLayers.length) gsap.fromTo(coverLayers, { scale: 1.1 }, { scale: 1, duration: slow ? 9 : 7, ease: "power2.out" });
+    if (slow) gsap.fromTo(coverLayers, { filter: "brightness(0)" }, { filter: "brightness(1)", duration: 5.5, ease: "power1.in", onComplete: () => gsap.set(coverLayers, { clearProps: "filter" }) });
     gsap.set(coverEls, { clearProps: "filter" });
-    gsap.to(coverEls, { opacity: 1, y: 0, duration: 1.6, ease: "power2.out", stagger: 0.22, delay: 0.3, onComplete: () => coverEls.forEach(e => { e.classList.add("is-in"); gsap.set(e, { clearProps: "filter" }); }) });
+    gsap.to(coverEls, { opacity: 1, y: 0, duration: 1.6, ease: "power2.out", stagger: 0.22, delay: textDelay, onComplete: () => { coverEls.forEach(e => { e.classList.add("is-in"); gsap.set(e, { clearProps: "filter" }); }); Dwell.start(); } });
     if (heroStar) {
-      gsap.fromTo(heroStar, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 2.4, ease: "power2.out", delay: 1.4, onComplete: () => heroStar.classList.add("is-awake") });
+      gsap.fromTo(heroStar, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 2.4, ease: "power2.out", delay: slow ? 0.5 : 1.4, onComplete: () => heroStar.classList.add("is-awake") });
       // the cover drifts up slower than the page and the star fades as the cover leaves
       if (!RM) gsap.to(coverLayers, { y: "18vh", ease: "none", scrollTrigger: { trigger: ".scene--cover", start: "top top", end: "bottom top", scrub: true } });
       gsap.to(heroStar, { opacity: 0, ease: "none", scrollTrigger: { trigger: ".scene--cover", start: "top top", end: "60% top", scrub: true } });
@@ -1104,6 +1101,14 @@
     if (fallBeat && vig0) {
       ScrollTrigger.create({ trigger: fallBeat, start: "top 70%", once: true, onEnter: () => {
         gsap.timeline().to(vig0, { opacity: RM ? 0.5 : 0.92, duration: 2.4, ease: "sine.inOut" }).to(vig0, { opacity: 0, duration: 5, ease: "sine.inOut" });
+        // the small figure under his star goes out like a lamp; what rises is lighter than sand
+        const fig = $("#c26c .art-fall"), dustG = $("#c26c .art-dust"), dust = $$("#c26c .art-dust circle");
+        if (fig) gsap.to(fig, { opacity: 0, duration: RM ? 0.5 : 4, ease: "power1.in", delay: RM ? 0 : 0.8 });
+        if (dustG && dust.length && !RM) {
+          gsap.set(dustG, { attr: { opacity: 1 } });
+          gsap.fromTo(dust, { opacity: 0, y: 0, x: 0 }, { opacity: 0.9, y: i => -(70 + i * 11), x: i => (i % 2 ? 1 : -1) * (8 + i * 3), duration: 5, ease: "power1.out", stagger: 0.09, delay: 1.2 });
+          gsap.to(dust, { opacity: 0, duration: 2.5, delay: 5.5, ease: "power1.in" });
+        }
       } });
     }
     // Her shelf: the photograph breathes slowly and lets go as the sky below it arrives
@@ -1157,9 +1162,10 @@
       });
       // Suns in the art sink slowly as their scene scrolls by (the forty-four-sunsets scene sinks farthest)
       $$(".scene").forEach(sec => {
+        if (sec.id === "c06") return;                    // the forty-four sunsets are hers to make, with the chair
         const suns = $$(".art-sun", sec);
         if (!suns.length) return;
-        const travel = CONFIG.sunScrub.travel * (sec.id === "c06" ? 2.2 : 1);
+        const travel = CONFIG.sunScrub.travel;
         gsap.fromTo(suns, { y: -travel * 0.3 }, {
           y: travel * 0.7, ease: "none",
           scrollTrigger: { trigger: sec, start: "top bottom", end: "bottom top", scrub: 0.8 }
