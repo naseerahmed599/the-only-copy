@@ -1294,6 +1294,37 @@
     return { ok, unlock, rememberKey, rememberedKey, norm };
   })();
 
+  /* ════════════════════════════════════════════════════════════
+     Splash: the whole book in six of its own drawings, no words,
+     about eight seconds, once per sitting. A tap skips it.
+     ════════════════════════════════════════════════════════════ */
+  const Splash = (() => {
+    const IDS = ["c02", "c08", "journeyintro", "c21c", "c25", "c27"];
+    function play(done) {
+      let seen = false;
+      try { seen = sessionStorage.getItem("onlycopy.splash") === "1"; sessionStorage.setItem("onlycopy.splash", "1"); } catch (_) {}
+      if (seen || RM || !HAS_GSAP || !window.ART) { done(); return; }
+      const moodOf = id => { const sc = (window.SCENES || []).find(x => x.id === id); return (sc && sc.mood) || "night"; };
+      const el = h("div", { id: "splash", "aria-hidden": "true" });
+      const frames = IDS.map(id => { const f = h("div.splash-frame"); f.innerHTML = window.ART.render(id, moodOf(id)); el.appendChild(f); return f; });
+      document.body.appendChild(el);
+      let finished = false;
+      const finish = () => {
+        if (finished) return; finished = true; tl.kill();
+        gsap.to(el, { opacity: 0, duration: 0.9, ease: "power1.inOut", onComplete: () => { el.remove(); done(); } });
+      };
+      el.addEventListener("pointerdown", finish);
+      const STEP = 1.35, HOLD = 1.0;
+      const tl = gsap.timeline({ onComplete: finish });
+      frames.forEach((f, i) => {
+        tl.fromTo(f, { opacity: 0, scale: 1.07 }, { opacity: 1, scale: 1.03, duration: 0.8, ease: "power2.out" }, i * STEP)
+          .to(f, { opacity: 0, scale: 1.0, duration: 0.7, ease: "power1.in" }, i * STEP + HOLD);
+      });
+      tl.to({}, { duration: 0.4 });
+    }
+    return { play };
+  })();
+
   const Gate = (() => {
     const norm = Sealed.norm;
     function remembered() { try { return localStorage.getItem(CONFIG.gateStorageKey) === norm(CONFIG.gate.answer); } catch (_) { return false; } }
@@ -1303,15 +1334,16 @@
     function show(onUnlock) {
       document.body.classList.add("is-gated");
       const field = h("div.gate-field");
-      const input = h("input", { id: "gate-input", type: "text", autocomplete: "off", autocapitalize: "off", autocorrect: "off", spellcheck: "false", autofocus: true, placeholder: " ", "aria-describedby": "gate-hint" });
+      const input = h("input", { id: "gate-input", type: "text", autocomplete: "off", autocapitalize: "off", autocorrect: "off", spellcheck: "false", autofocus: true, placeholder: "write it here", "aria-describedby": "gate-hint", enterkeyhint: "go" });
       field.appendChild(input);
       const form = h("form.gate-card", { novalidate: true },
+        h("div.gate-star", { "aria-hidden": "true" }),
         CONFIG.gate.greeting ? h("p.gate-greeting", { text: CONFIG.gate.greeting }) : null,
         h("h1.gate-title", { id: "gate-title", text: CONFIG.gate.title || "This edition opens with a word." }),
         h("p.gate-hint", { id: "gate-hint", text: CONFIG.gate.hint || "" }),
         h("label.vh", { for: "gate-input", text: "Your answer" }),
         field,
-        h("p.gate-foot", { text: "press enter" })
+        h("button.gate-open", { type: "submit", text: "open" })
       );
       const gate = h("div", { id: "gate", role: "dialog", "aria-modal": "true", "aria-labelledby": "gate-title" }, form);
       document.body.appendChild(gate);
@@ -1363,12 +1395,13 @@
     const unlock = () => { Audio.resume(); window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); };
     window.addEventListener("pointerdown", unlock, { once: true });
     window.addEventListener("keydown", unlock, { once: true });
-    const begin = () => { if (window.SCENES) start(); else loadScript("scenes.js", start); };
+    const go = () => { if (window.SCENES) start(); else loadScript("scenes.js", start); };
+    const begin = () => Splash.play(go);
     if (!Gate.needed()) { begin(); return; }
     window.scrollTo(0, 0);
     if (CONFIG.gate.sealed) {
       const raw = Sealed.rememberedKey();
-      if (raw) { Sealed.unlock(raw, true).then(start).catch(() => Gate.show(start)); return; }
+      if (raw) { Sealed.unlock(raw, true).then(begin).catch(() => Gate.show(begin)); return; }
     }
     Gate.show(begin);
   }
