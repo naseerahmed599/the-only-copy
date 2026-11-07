@@ -42,13 +42,12 @@
     constellation: { needed: 5, minDist: 11 },
     // Real images that also have a landscape version (img/<name>-wide.jpg), used on laptops
     wideImages: ["00-cover", "38-the-thirty-first-star", "38-the-thirty-first-star-dawn",
-      "02-desert-crash", "07-forty-four-sunsets", "29-walking-at-night", "18-the-earth-at-night", "19-the-snake",
-      "23-the-fox-appears", "24-the-wheat-fields", "26-the-secret", "27-the-railway-switchman"],
-    // Photographs from Wikimedia Commons (see CREDITS.txt): they get one shared treatment so they read as one night
-    photos: ["02-desert-crash", "06-baobabs", "07-forty-four-sunsets", "29-walking-at-night", "18-the-earth-at-night", "19-the-snake",
-      "23-the-fox-appears", "24-the-wheat-fields", "26-the-secret", "27-the-railway-switchman"],
+      "02-desert-crash", "07-forty-four-sunsets", "29-walking-at-night"],
+    // Photographs from Wikimedia Commons (see CREDITS.txt). Rule: a photograph only where it shares the drawings'
+    // own vocabulary (sand, sky, one sun) and holds no character the book draws. Everything else stays drawn.
+    photos: ["02-desert-crash", "07-forty-four-sunsets", "29-walking-at-night"],
     // where the subject sits in each landscape photograph (fraction of width), for the laptop crop
-    photoFocus: { "07-forty-four-sunsets": 0.36, "23-the-fox-appears": 0.62, "26-the-secret": 0.36, "27-the-railway-switchman": 0.32 },
+    photoFocus: { "07-forty-four-sunsets": 0.36 },
     // Things she keeps as she passes them (scene id → object); they rise into the sky at the shelf
     pocket: { c02b: "box", c08: "rose", c21d: "note", c25: "cup", c26b: "bell" },
     // A second image that fades in over the first as a scene's text scrolls by (scene id → file)
@@ -396,7 +395,7 @@
       have.add(kind);
       const item = h("span.pocket-item", { dataset: { kind }, html: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">${ICON[kind]}</svg>` });
       ensure().appendChild(item);
-      if (HAS_GSAP && !RM) gsap.from(item, { y: -26, opacity: 0, scale: 0.6, duration: 1.1, ease: "back.out(1.7)" });
+      if (HAS_GSAP && !RM) gsap.from(item, { y: -12, opacity: 0, duration: 1.2, ease: "power2.out" });
     }
     function release(onDone) {
       if (!el || !el.children.length) { if (onDone) onDone(); return; }
@@ -424,7 +423,7 @@
     content.appendChild(h("h1.title.rv", { text: s.title }));
     if (s.sub) content.appendChild(h("p.sub.rv", { text: s.sub }));
     (s.beats || []).forEach(b => content.appendChild(h("p.beat.rv", { text: b })));
-    if (s.hint) content.appendChild(h("p.hint.rv", { text: s.hint }, h("span.chev")));
+    if (s.hint) content.appendChild(h("p.hint.rv", { text: s.hint }));
     sec.appendChild(content);
     return sec;
   }
@@ -459,7 +458,7 @@
       const card = h("div.riddle.rv");
       card.appendChild(h("p.kicker", { text: "Guess who lives here" }));
       card.appendChild(h("p", { text: s.riddle }));
-      const btn = h("button.reveal", { type: "button", text: "Reveal" });
+      const btn = h("button.reveal", { type: "button", text: "reveal" });
       btn.addEventListener("click", () => unveil(sec, card));
       card.appendChild(btn);
       text.appendChild(card);
@@ -498,7 +497,7 @@
     text.appendChild(h("h2.title.rv", { text: s.title }));
     (s.beats || []).forEach(b => text.appendChild(h("p.beat.rv", { text: b })));
     if (s.note) text.appendChild(h("aside.note.rv", { text: s.note }));
-    if (s.interactionText) text.appendChild(h("p.prompt.rv", { text: s.interactionText, style: "font-family:var(--caps);font-size:.92rem;letter-spacing:.2em;color:var(--gold-soft);margin-top:2rem" }));
+    if (s.interactionText) text.appendChild(h("p.prompt.rv.shelf-prompt", { text: s.interactionText }));
     sec.appendChild(text);
     const box = h("div.interaction.ix-constellation", { dataset: { kind: "constellation" }, style: "max-width:none;margin:0" });
     Interactions.constellation(box, s);
@@ -511,7 +510,7 @@
   function unveil(sec, card) {
     if (!sec.classList.contains("is-veiled")) return;
     sec.classList.remove("is-veiled");
-    if (card) { card.classList.add("is-done"); const b = $(".reveal", card); if (b) b.textContent = "Revealed"; }
+    if (card) { card.classList.add("is-done"); const b = $(".reveal", card); if (b) b.textContent = "revealed"; }
   }
 
   function render() {
@@ -968,18 +967,20 @@
       const slow = el.classList.contains("rv--slow");
       const inCover = !!el.closest(".scene--cover");
       const isTitle = el.classList.contains("title");
+      const isHead = isTitle || el.classList.contains("caption");
       const isStamp = el.classList.contains("stamp");
+      const wide = window.matchMedia("(min-width: 900px)").matches;
       const from = { opacity: 0, y: RM ? 0 : CONFIG.reveal.y };
-      if (!RM) from.filter = "blur(" + CONFIG.reveal.blur + "px)";         // text settles into focus, like a slow lens
-      if (!RM && isTitle && !inCover) from.letterSpacing = CONFIG.reveal.titleTracking;
-      if (!RM && isStamp) { from.scale = 1.7; from.rotation = -9; from.y = 0; from.filter = "none"; }
+      if (!RM && isHead) from.filter = "blur(" + CONFIG.reveal.blur + "px)";   // headings settle into focus, like a slow lens
+      if (!RM && isTitle && !inCover && wide) from.letterSpacing = CONFIG.reveal.titleTracking;
+      if (!RM && isStamp) { from.scale = 1.08; from.rotation = -3; from.y = 0; }
       gsap.set(el, from);
       if (inCover) return; // handled as a timeline below
       const to = { opacity: 1, y: 0, duration: slow ? CONFIG.dedication.duration : CONFIG.reveal.duration, ease: CONFIG.reveal.ease,
         onComplete: () => { el.classList.add("is-in"); gsap.set(el, { clearProps: "filter,letterSpacing" }); } };
-      if (!RM) to.filter = "blur(0px)";
-      if (!RM && isTitle && !inCover) { to.letterSpacing = "0em"; to.duration = CONFIG.reveal.duration * 1.6; }
-      if (!RM && isStamp) { to.scale = 1; to.rotation = -1.5; to.duration = 0.7; to.ease = "back.out(2.2)"; to.filter = "none"; }
+      if (!RM && isHead) to.filter = "blur(0px)";
+      if (!RM && isTitle && !inCover && wide) { to.letterSpacing = "0em"; to.duration = CONFIG.reveal.duration * 1.6; }
+      if (!RM && isStamp) { to.scale = 1; to.rotation = -1.5; to.duration = 1.2; to.ease = "power2.out"; }
       ScrollTrigger.create({
         trigger: el, start: slow ? "top 85%" : (isStamp ? "top 90%" : CONFIG.reveal.start), once: true,
         onEnter: () => gsap.to(el, to)
@@ -990,7 +991,8 @@
     const coverLayers = $$(".scene--cover .slot img, .scene--cover .slot .art");
     const heroStar = $(".scene--cover .hero-star");
     if (!RM && coverLayers.length) gsap.fromTo(coverLayers, { scale: 1.1 }, { scale: 1, duration: 7, ease: "power2.out" });
-    gsap.to(coverEls, { opacity: 1, y: 0, filter: "blur(0px)", duration: 1.6, ease: "power2.out", stagger: 0.22, delay: 0.3, onComplete: () => coverEls.forEach(e => { e.classList.add("is-in"); gsap.set(e, { clearProps: "filter" }); }) });
+    gsap.set(coverEls, { clearProps: "filter" });
+    gsap.to(coverEls, { opacity: 1, y: 0, duration: 1.6, ease: "power2.out", stagger: 0.22, delay: 0.3, onComplete: () => coverEls.forEach(e => { e.classList.add("is-in"); gsap.set(e, { clearProps: "filter" }); }) });
     if (heroStar) {
       gsap.fromTo(heroStar, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 2.4, ease: "power2.out", delay: 1.4, onComplete: () => heroStar.classList.add("is-awake") });
       // the cover drifts up slower than the page and the star fades as the cover leaves
@@ -1088,8 +1090,8 @@
         const veil = $(".hero .veil", sec), text = $(".text", sec);
         if (!veil || !text) return;
         gsap.fromTo(veil, { opacity: 0 }, {
-          opacity: 0.74, ease: "none",
-          scrollTrigger: { trigger: text, start: "top 60%", end: "top 12%", scrub: true }
+          opacity: 0.82, ease: "none",
+          scrollTrigger: { trigger: text, start: "top 95%", end: "top 45%", scrub: true }
         });
       });
     });

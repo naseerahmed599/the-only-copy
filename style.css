@@ -19,7 +19,7 @@
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
-  --measure: 34ch;
+  --measure: 36ch;
   --vh: 100vh;                 /* fallback, overridden below */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --t-mood: 1800ms;
@@ -140,7 +140,7 @@ body[data-mood="deep"]  .tint--deep { opacity: 1; }
 
 .caption {
   font-family: var(--caps);
-  font-size: .95rem; letter-spacing: .22em; font-weight: 600;
+  font-size: .95rem; letter-spacing: .22em; font-weight: 500;
   color: var(--gold); opacity: .85;
   margin: 0 0 1rem;
 }
@@ -173,7 +173,6 @@ body[data-mood="deep"]  .tint--deep { opacity: 1; }
   line-height: 1.55;
   color: var(--gold);
   opacity: .92;
-  transform: rotate(-1deg);
   text-align: left;
 }
 .note::before {
@@ -207,6 +206,11 @@ body[data-mood="deep"]  .tint--deep { opacity: 1; }
 .slot.is-photo img { filter: saturate(.78) contrast(1.04) brightness(.9); }
 @media (min-width: 900px) { .slot.is-photo img { object-position: var(--fx, 50%) 40%; } }
 .slot .tint { position: absolute; inset: 0; pointer-events: none; background: var(--sky); mix-blend-mode: multiply; opacity: .34; transition: background var(--t-mood) ease-in-out; }
+.slot.is-photo::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .14; mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
 .slot.is-photo .scrim { background: linear-gradient(180deg, rgba(7,11,31,.3) 0%, rgba(7,11,31,.05) 30%, rgba(7,11,31,.5) 100%); }
 .slot img.xfade { opacity: 0; transition: none; z-index: 1; }
 .slot img.xfade.is-broken { display: none; }
@@ -336,12 +340,6 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
   margin-top: 3rem;
   font-family: var(--caps); font-size: .9rem; letter-spacing: .18em;
   color: var(--ink-faint);
-  animation: pulse 3.4s ease-in-out infinite;
-}
-.scene--cover .hint .chev {
-  display: block; width: 14px; height: 14px; margin: 14px auto 0;
-  border-right: 1px solid var(--gold-soft); border-bottom: 1px solid var(--gold-soft);
-  transform: rotate(45deg);
 }
 @keyframes pulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
 
@@ -387,12 +385,17 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 }
 .scene--chapter .text, .scene--interlude .text, .scene--end .text {
   position: relative; z-index: 1;
-  margin-top: -38vh;
-  padding: 0 1.5rem clamp(6rem, 14vh, 10rem);
-  text-align: center;
-  max-width: 44rem; margin-left: auto; margin-right: auto;
+  margin-top: -34vh;
+  padding: 6vh 1.5rem clamp(8rem, 22vh, 14rem);
+  text-align: left;
+  max-width: calc(var(--measure) + 3rem); margin-left: auto; margin-right: auto;
 }
-.text .title { text-shadow: 0 2px 30px rgba(7,11,31,.9); }
+.scene--chapter .text::before, .scene--interlude .text::before, .scene--end .text::before {
+  content: ""; position: absolute; left: -50vw; right: -50vw; top: -24vh; height: 36vh; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(7,11,31,0) 0%, rgba(7,11,31,.5) 55%, rgba(7,11,31,.72) 100%);
+}
+.scene--chapter .text > *, .scene--interlude .text > *, .scene--end .text > * { margin-left: 0; margin-right: auto; }
+.text .title { text-shadow: 0 1px 2px rgba(7,11,31,.9), 0 0 24px rgba(7,11,31,.95), 0 0 60px rgba(7,11,31,.8); }
 /* Hero zoom/blur filters run on the slot, not the img, so GSAP transform stays clean */
 .hero .slot { transition: filter 1.2s var(--ease-out); }
 .scene.is-veiled .hero .slot { filter: blur(18px) saturate(.8); }
@@ -418,10 +421,13 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
   }
   .scene--chapter .text, .scene--interlude .text, .scene--end .text {
     margin: 0; max-width: none;
-    padding: 22vh clamp(2.5rem, 6vw, 6rem) 22vh clamp(2.5rem, 5vw, 5rem);
+    padding: 14vh clamp(2.5rem, 6vw, 6rem) 18vh clamp(2.5rem, 5vw, 5rem);
     text-align: left;
-    min-height: 100vh;
+    min-height: 112vh;
+    display: flex; flex-direction: column; justify-content: center;
   }
+  .scene--chapter .text::before, .scene--interlude .text::before, .scene--end .text::before { display: none; }
+  .text .title { max-width: 24rem; }
   .scene--chapter .text .beat, .scene--interlude .text .beat, .scene--end .text .beat { margin-left: 0; }
   .scene--chapter .text .note, .scene--interlude .text .note, .scene--end .text .note { margin-left: 0; }
   .scene--chapter .text .interaction, .scene--interlude .text .interaction, .scene--end .text .interaction { margin-left: 0; }
@@ -431,22 +437,18 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 /* ── Riddle card ──────────────────────────────────────────── */
 .riddle {
   max-width: 30rem; margin: 0 auto 4rem;
-  padding: 1.6rem 1.5rem 1.4rem;
-  border: 1px solid rgba(232,200,114,.28);
-  border-radius: 4px;
-  background: rgba(7, 11, 31, .55);
-  backdrop-filter: blur(10px);
-  text-align: center;
+  padding: 0;
+  text-align: left;
 }
 .riddle .kicker { font-family: var(--caps); font-size: .92rem; letter-spacing: .26em; font-weight: 600; color: var(--gold); margin: 0 0 .9rem; }
 .riddle p { margin: 0 0 1.3rem; font-style: italic; font-size: 1.1rem; line-height: 1.6; color: var(--ink); }
 .riddle .reveal {
-  font-family: var(--sans); font-size: .74rem; letter-spacing: .2em; text-transform: uppercase;
-  color: var(--gold); padding: .7rem 1.4rem;
-  border: 1px solid var(--gold-soft); border-radius: 999px;
-  transition: background .3s, color .3s;
+  font-family: var(--caps); font-size: .95rem; letter-spacing: .24em; font-weight: 600;
+  color: var(--gold); padding: .5rem 0 .15rem;
+  border: 0; border-bottom: 1px solid var(--gold-soft); border-radius: 0; background: none; cursor: pointer;
+  transition: border-color .3s, color .3s;
 }
-.riddle .reveal:hover { background: var(--gold); color: #1a1408; }
+.riddle .reveal:hover { border-color: var(--gold); color: #fff3d0; }
 .riddle.is-done .reveal { opacity: .45; pointer-events: none; }
 @media (min-width: 900px) { .riddle { margin-left: 0; } }
 
@@ -473,7 +475,7 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 }
 .interaction .again {
   display: inline-block; margin-top: .6rem;
-  font-family: var(--sans); font-size: .66rem; letter-spacing: .18em; text-transform: uppercase;
+  font-family: var(--caps); font-size: .85rem; letter-spacing: .18em;
   color: var(--ink-faint); border-bottom: 1px solid transparent;
 }
 .interaction .again:hover { color: var(--gold); border-color: var(--gold-soft); }
@@ -517,18 +519,18 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 
 /* sunset */
 .ix-sunset .scene-sky {
-  position: relative; height: 180px; border-radius: 6px; overflow: hidden;
+  position: relative; height: 180px; border-radius: 0; overflow: hidden;
   background: linear-gradient(180deg, var(--sun-sky-top, #f0c070), var(--sun-sky-bottom, #e08a5a));
 }
 .ix-sunset .sun {
   position: absolute; left: 50%; width: 46px; height: 46px; margin-left: -23px;
-  border-radius: 50%; background: #fff2c8;
+  border-radius: 0; background: #fff2c8;
   box-shadow: 0 0 30px rgba(255, 230, 170, .9), 0 0 80px rgba(255, 200, 120, .6);
   top: 25%;
 }
 .ix-sunset .dune {
   position: absolute; left: -10%; right: -10%; bottom: -40px; height: 110px;
-  background: #1a1410; border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background: #1a1410; border-radius: 0;
 }
 .ix-sunset .dune.two { left: 30%; right: -30%; bottom: -55px; background: #110d0a; }
 .ix-sunset .range { -webkit-appearance: none; appearance: none; width: 100%; height: 34px; background: transparent; margin: 1rem 0 0; cursor: ew-resize; }
@@ -546,13 +548,13 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M5 3v12M5 10h9M14 8v7M6 15v4M13 15v4' stroke='%23e8c872' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-size: contain;
 }
-.ix-sunset .count { font-family: var(--sans); font-size: .7rem; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); margin-top: .4rem; }
+.ix-sunset .count { font-family: var(--caps); font-size: .85rem; letter-spacing: .2em; color: var(--gold); margin-top: .4rem; }
 
 /* counter */
 .ix-counter .odo {
   position: relative;
-  font-family: var(--mono); font-variant-numeric: tabular-nums;
-  font-size: clamp(1.6rem, 6.5vw, 2.6rem); letter-spacing: .06em;
+  font-family: var(--serif); font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
+  font-size: clamp(2.2rem, 7vw, 3.4rem); letter-spacing: .04em;
   color: var(--ink);
   padding: .6rem 0;
 }
@@ -560,7 +562,7 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
   position: absolute; right: -1.6em; top: 0;
   font-size: .5em; color: var(--gold); opacity: 0;
 }
-.ix-counter .lbl { font-family: var(--sans); font-size: .7rem; letter-spacing: .3em; text-transform: uppercase; color: var(--gold-soft); }
+.ix-counter .lbl { font-family: var(--caps); font-size: .85rem; letter-spacing: .3em; color: var(--gold-soft); }
 
 /* roses */
 .ix-roses .grid {
@@ -626,7 +628,7 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
   background: var(--gold); box-shadow: 0 0 14px var(--gold-glow);
   animation: pulse 2.6s ease-in-out infinite;
 }
-.ix-well .hintline { font-family: var(--sans); font-size: .64rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-faint); margin-top: .5rem; }
+.ix-well .hintline { font-family: var(--caps); font-size: .85rem; letter-spacing: .16em; color: var(--ink-faint); margin-top: .5rem; }
 
 /* bells */
 .ix-bells { max-width: none; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
@@ -634,9 +636,8 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 @media (min-width: 900px) { .ix-bells { width: 100%; margin-left: 0; margin-right: 0; } .ix-bells .prompt { padding: 0; } }
 .ix-bells .panel {
   position: relative; width: 100%; height: 60vh; min-height: 360px;
-  background: radial-gradient(100% 80% at 50% 100%, #0a0f2a, #03050e);
+  background: none;
   overflow: hidden;
-  border-top: 1px solid rgba(243,238,226,.06); border-bottom: 1px solid rgba(243,238,226,.06);
 }
 .bell-star {
   position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px;
@@ -655,7 +656,7 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 @keyframes twinkle { 0%, 100% { opacity: .7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.6); } }
 .ix-bells .laughed {
   position: absolute; right: 1.2rem; bottom: 1rem;
-  font-family: var(--sans); font-size: .68rem; letter-spacing: .22em; text-transform: uppercase; color: var(--gold);
+  font-family: var(--serif); font-style: italic; font-size: 1rem; letter-spacing: 0; color: var(--ink-dim);
 }
 
 /* ── Shelf / constellation ────────────────────────────────── */
@@ -693,7 +694,7 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 .cstar--rose { pointer-events: none; opacity: 0; transition: opacity 3s ease; }
 .cstar--rose i { width: 6px; height: 6px; background: var(--rose); box-shadow: 0 0 16px var(--rose), 0 0 40px var(--rose-glow); animation: glow 3.4s ease-in-out infinite; }
 .cstar--rose.is-shown { opacity: 1; }
-.constellation .counter { position: absolute; left: 50%; bottom: 1.4rem; transform: translateX(-50%); font-family: var(--sans); font-size: .66rem; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-faint); }
+.constellation .counter { position: absolute; left: 50%; bottom: 1.4rem; transform: translateX(-50%); font-family: var(--caps); font-size: .85rem; letter-spacing: .22em; color: var(--ink-faint); }
 
 /* ── A note from the reader (hidden behind a small star) ──── */
 .secret { margin: 1.6rem auto 0; max-width: var(--measure); text-align: left; }
@@ -719,8 +720,10 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 .secret.is-open .secret-star i { transform: scale(1.8); animation: none; }
 @media (min-width: 900px) { .scene--chapter .text .secret { margin-left: 0; } }
 
+.shelf-prompt { font-family: var(--caps); font-size: .92rem; letter-spacing: .2em; color: var(--gold-soft); margin-top: 2rem; }
+
 /* ── Credits line under the stamp ──────────────────────────── */
-.credits { margin: 1.6rem auto 0; font-family: var(--sans); font-size: .6rem; letter-spacing: .22em; text-transform: uppercase; }
+.credits { margin: 1.6rem auto 0; font-family: var(--caps); font-size: .85rem; letter-spacing: .22em; }
 .credits a { color: var(--ink-faint); text-decoration: none; border-bottom: 1px solid rgba(243,238,226,.18); padding-bottom: 1px; }
 .credits a:hover { color: var(--gold-soft); }
 @media (min-width: 900px) { .scene--end .credits { margin-left: 0; } }
@@ -729,10 +732,12 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 #pocket {
   position: fixed; left: calc(12px + env(safe-area-inset-left)); bottom: calc(16px + env(safe-area-inset-bottom));
   z-index: 6; pointer-events: none;
-  display: flex; flex-direction: column-reverse; gap: 10px;
+  display: flex; flex-direction: row; gap: 8px;
 }
 #pocket:empty { display: none; }
-.pocket-item { display: block; width: 26px; height: 26px; color: var(--gold); opacity: .8; filter: drop-shadow(0 0 6px rgba(232,200,114,.35)); }
+.pocket-item { display: block; width: 18px; height: 18px; color: var(--gold); opacity: .5; }
+.pocket-item:nth-child(odd) { transform: rotate(-4deg); }
+.pocket-item:nth-child(even) { transform: rotate(3deg); }
 .pocket-item svg { width: 100%; height: 100%; }
 body.is-gated #pocket { display: none; }
 
