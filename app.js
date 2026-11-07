@@ -14,7 +14,7 @@
   const CONFIG = {
     // Optional passphrase gate. Set enabled:true and an answer; compare is case/diacritic/whitespace-insensitive.
     // sealed: the story and her photograph are encrypted with the answer (tools/seal.cjs); the answer is stored nowhere.
-    gate: { enabled: true, sealed: true, answer: "", greeting: "Hello. This was made for you.", title: "It opens with a sentence.", hint: "The funniest one from the spy game." },
+    gate: { enabled: true, sealed: true, answer: "", greeting: "Hello. This was made for you.", title: "This edition opens with a sentence.", hint: "The funniest one from the spy game." },
     gateStorageKey: "onlycopy.gate",
     vignette: { duration: 2.0 },                       // chapter-transition dip, seconds
     heroStar: { period: 8000, x: 0.66, y: 0.24 },      // the one bright star on the cover: pulses every ~8 s
