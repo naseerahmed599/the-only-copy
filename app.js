@@ -41,13 +41,11 @@
     bells: { count: 60 },
     constellation: { needed: 5, minDist: 11 },
     // Real images that also have a landscape version (img/<name>-wide.jpg), used on laptops
-    wideImages: ["00-cover", "38-the-thirty-first-star", "38-the-thirty-first-star-dawn",
-      "02-desert-crash", "07-forty-four-sunsets", "29-walking-at-night"],
-    // Photographs from Wikimedia Commons (see CREDITS.txt). Rule: a photograph only where it shares the drawings'
-    // own vocabulary (sand, sky, one sun) and holds no character the book draws. Everything else stays drawn.
-    photos: ["02-desert-crash", "07-forty-four-sunsets", "29-walking-at-night"],
-    // where the subject sits in each landscape photograph (fraction of width), for the laptop crop
-    photoFocus: { "07-forty-four-sunsets": 0.36 },
+    wideImages: ["00-cover", "38-the-thirty-first-star", "38-the-thirty-first-star-dawn"],
+    // Inside the story every scene is drawn (art.js). Only the two frame images are photographs: the reader's own
+    // Milky Way on the cover and his rooftops at the colophon. A file listed here would get the shared photo treatment.
+    photos: [],
+    photoFocus: {},
     // Things she keeps as she passes them (scene id → object); they rise into the sky at the shelf
     pocket: { c02b: "box", c08: "rose", c21d: "note", c25: "cup", c26b: "bell" },
     // A second image that fades in over the first as a scene's text scrolls by (scene id → file)
@@ -395,7 +393,9 @@
       have.add(kind);
       const item = h("span.pocket-item", { dataset: { kind }, html: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">${ICON[kind]}</svg>` });
       ensure().appendChild(item);
-      if (HAS_GSAP && !RM) gsap.from(item, { y: -12, opacity: 0, duration: 1.2, ease: "power2.out" });
+      const tilt = el.children.length % 2 ? 3 : -4;
+      if (HAS_GSAP && !RM) gsap.fromTo(item, { y: -12, opacity: 0, rotation: tilt }, { y: 0, opacity: 1, rotation: tilt, duration: 1.2, ease: "power2.out" });
+      else item.style.transform = "rotate(" + tilt + "deg)";
     }
     function release(onDone) {
       if (!el || !el.children.length) { if (onDone) onDone(); return; }

@@ -377,7 +377,7 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 }
 
 /* ── Chapter / Interlude / End (shared layout) ────────────── */
-.scene--chapter, .scene--interlude, .scene--end { position: relative; }
+.scene--chapter, .scene--interlude, .scene--end { position: relative; overflow-x: clip; }
 .scene--chapter .hero, .scene--interlude .hero, .scene--end .hero {
   position: sticky; top: 0;
   height: var(--vh);
@@ -736,8 +736,7 @@ body.is-gated #progress, body.is-gated #sound, body.is-gated .quiet { display: n
 }
 #pocket:empty { display: none; }
 .pocket-item { display: block; width: 18px; height: 18px; color: var(--gold); opacity: .5; }
-.pocket-item:nth-child(odd) { transform: rotate(-4deg); }
-.pocket-item:nth-child(even) { transform: rotate(3deg); }
+
 .pocket-item svg { width: 100%; height: 100%; }
 body.is-gated #pocket { display: none; }
 
